@@ -28,31 +28,31 @@ A task is complete only when its implementation has been verified.
 - [x] Create docs/DECISIONS.md.
 - [x] Create TODO.md.
 - [ ] Arrange at least 25 GB of available host disk space.
-- [ ] Verify the new files and make the foundation commit.
+- [x] Verify the new files and make the foundation commit.
 
 ## Phase 1 — LXD Development Environment (P0)
 
-- [ ] Inspect available storage drivers.
-- [ ] Create a quota-capable LXD storage pool.
-- [ ] Verify that container disk limits are enforced.
-- [ ] Configure the default profile to use the chosen pool.
-- [ ] Verify LXD networking.
-- [ ] Discover supported Ubuntu image aliases.
-- [ ] Create an unprivileged development container.
-- [ ] Verify its network connectivity.
-- [ ] Verify CPU, memory and disk configuration.
-- [ ] Test start, stop, restart, freeze and unfreeze.
-- [ ] Test real LXD command execution.
-- [ ] Verify cleanup and container deletion.
-- [ ] Record installation and configuration commands for README.md.
+- [x] Inspect available storage drivers.
+- [x] Create a quota-capable LXD storage pool.
+- [x] Verify that container disk limits are enforced.
+- [x] Configure the default profile to use the chosen pool.
+- [x] Verify LXD networking.
+- [x] Discover supported Ubuntu image aliases.
+- [x] Create an unprivileged development container.
+- [x] Verify its network connectivity.
+- [x] Verify CPU, memory and disk configuration.
+- [x] Test start, stop, restart, freeze and unfreeze.
+- [x] Test real LXD command execution.
+- [x] Verify cleanup and container deletion.
+- [x] Record installation and configuration commands for README.md.
 
 ## Phase 2 — Falcon Backend Foundation (P0)
 
-- [ ] Define the backend package structure.
-- [ ] Configure the Python virtual environment.
-- [ ] Select and pin required dependencies.
-- [ ] Implement centralized application configuration.
-- [ ] Implement environment-variable validation.
+- [x] Define the backend package structure.
+- [x] Configure the Python virtual environment.
+- [x] Select and pin required dependencies.
+- [x] Implement centralized application configuration.
+- [x] Implement environment-variable validation.
 - [ ] Initialize the Falcon application.
 - [ ] Implement a health endpoint.
 - [ ] Add consistent API error responses.
