@@ -53,6 +53,7 @@ class DatabaseTests(unittest.TestCase):
             "container_access",
             "sessions",
             "audit_logs",
+            "oauth_flows",
         }
 
         with get_connection() as connection:
@@ -84,7 +85,7 @@ class DatabaseTests(unittest.TestCase):
                 "PRAGMA user_version"
             ).fetchone()[0]
 
-        self.assertEqual(version, 1)
+        self.assertEqual(version, 2)
 
     def test_initialization_is_repeatable(self):
         """
@@ -99,7 +100,7 @@ class DatabaseTests(unittest.TestCase):
                 "PRAGMA user_version"
             ).fetchone()[0]
 
-        self.assertEqual(version, 1)
+        self.assertEqual(version, 2)
 
     def test_foreign_keys_are_enabled(self):
         """

@@ -77,14 +77,14 @@ A task is complete only when its implementation has been verified.
 - [ ] Require invitations for ordinary users.
 - [ ] Implement secure server-side sessions.
 - [ ] Configure HttpOnly, SameSite and environment-appropriate Secure cookies.
-- [ ] Implement session expiration.
-- [ ] Implement logout and session invalidation.
+- [x] Implement session expiration.
+- [x] Implement logout and session invalidation.
 - [ ] Implement user-revocation session invalidation.
-- [ ] Implement CSRF protection.
-- [ ] Implement centralized authentication middleware.
+- [x] Implement CSRF protection.
+- [x] Implement centralized authentication middleware.
 - [ ] Implement centralized permission rules.
 - [ ] Implement service-layer authorization.
-- [ ] Test unauthorized and unauthenticated requests.
+- [x] Test unauthorized and unauthenticated requests.
 - [ ] Prevent removal of the last active Admin.
 
 ## Phase 4 — LXD Integration (P0)
