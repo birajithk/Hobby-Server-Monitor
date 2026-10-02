@@ -57,13 +57,13 @@ A task is complete only when its implementation has been verified.
 - [x] Implement a health endpoint.
 - [x] Add consistent API error responses.
 - [x] Add structured application logging.
-- [ ] Implement SQLite connection management.
-- [ ] Configure SQLite foreign keys.
+- [x] Implement SQLite connection management.
+- [x] Configure SQLite foreign keys.
 - [x] Define database schema and indexes.
-- [ ] Implement database initialization and migrations.
-- [ ] Add the TinyFlux connection and storage configuration.
-- [ ] Define separate service and repository layers.
-- [ ] Add backend test infrastructure.
+- [x] Implement database initialization and migrations.
+- [x] Add the TinyFlux connection and storage configuration.
+- [x] Define separate service and repository layers.
+- [x] Add backend test infrastructure.
 
 ## Phase 3 — Authentication and Authorization (P0)
 
