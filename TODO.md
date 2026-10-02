@@ -33,7 +33,7 @@ A task is complete only when its implementation has been verified.
 ## Phase 1 — LXD Development Environment (P0)
 
 - [x] Inspect available storage drivers.
-- [x] Create a quota-capable LXD storage pool.
+- [ ] Create a quota-capable LXD storage pool.
 - [x] Verify that container disk limits are enforced.
 - [x] Configure the default profile to use the chosen pool.
 - [x] Verify LXD networking.
@@ -53,13 +53,13 @@ A task is complete only when its implementation has been verified.
 - [x] Select and pin required dependencies.
 - [x] Implement centralized application configuration.
 - [x] Implement environment-variable validation.
-- [ ] Initialize the Falcon application.
-- [ ] Implement a health endpoint.
-- [ ] Add consistent API error responses.
-- [ ] Add structured application logging.
+- [x] Initialize the Falcon application.
+- [x] Implement a health endpoint.
+- [x] Add consistent API error responses.
+- [x] Add structured application logging.
 - [ ] Implement SQLite connection management.
 - [ ] Configure SQLite foreign keys.
-- [ ] Define database schema and indexes.
+- [x] Define database schema and indexes.
 - [ ] Implement database initialization and migrations.
 - [ ] Add the TinyFlux connection and storage configuration.
 - [ ] Define separate service and repository layers.
