@@ -1,6 +1,13 @@
 
 import falcon
 
+from app.auth.invitations import InvitationResource
+
+from app.auth.oauth import (
+    GoogleCallbackResource,
+    GoogleLoginResource,
+)
+
 from app.auth.middleware import AuthMiddleware
 from app.auth.sessions import (
     SessionStore,
@@ -90,6 +97,21 @@ def create_app(session_store=None):
     application.add_route(
         "/auth/logout",
         LogoutResource(sessions),
+    )
+
+    application.add_route(
+        "/auth/google/login",
+        GoogleLoginResource(),
+    )
+
+    application.add_route(
+        "/auth/google/callback",
+        GoogleCallbackResource(sessions),
+    )
+
+    application.add_route(
+        "/api/admin/invitations",
+        InvitationResource(),
     )
 
     return application

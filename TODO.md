@@ -67,16 +67,16 @@ A task is complete only when its implementation has been verified.
 
 ## Phase 3 — Authentication and Authorization (P0)
 
-- [ ] Create Google OAuth credentials.
-- [ ] Configure OAuth redirect URIs.
-- [ ] Implement login initiation.
-- [ ] Implement OAuth state and PKCE.
-- [ ] Implement OAuth callback and identity validation.
-- [ ] Verify Google's stable user identifier and email status.
-- [ ] Implement bootstrap Admin creation.
-- [ ] Require invitations for ordinary users.
-- [ ] Implement secure server-side sessions.
-- [ ] Configure HttpOnly, SameSite and environment-appropriate Secure cookies.
+- [x] Create Google OAuth credentials.
+- [x] Configure OAuth redirect URIs.
+- [x] Implement login initiation.
+- [x] Implement OAuth state and PKCE.
+- [x] Implement OAuth callback and identity validation.
+- [x] Verify Google's stable user identifier and email status.
+- [x] Implement bootstrap Admin creation.
+- [x] Require invitations for ordinary users.
+- [x] Implement secure server-side sessions.
+- [x] Configure HttpOnly, SameSite and environment-appropriate Secure cookies.
 - [x] Implement session expiration.
 - [x] Implement logout and session invalidation.
 - [ ] Implement user-revocation session invalidation.
