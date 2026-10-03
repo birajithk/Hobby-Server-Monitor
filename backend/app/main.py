@@ -13,6 +13,9 @@ from app.api.containers import (
     ContainerListResource,
 )
 
+from app.api.host import HostOverviewResource
+from app.services.host_service import HostService
+
 from app.services.container_service import (
     ContainerService,
 )
@@ -79,7 +82,11 @@ class LogoutResource:
         }
 
 
-def create_app(session_store=None, lxd_service=None):
+def create_app(
+    session_store=None,
+    lxd_service=None,
+    host_service=None,
+):
     """Create the Falcon application."""
 
     sessions = (
@@ -136,6 +143,14 @@ def create_app(session_store=None, lxd_service=None):
         "/api/containers/{container_id}",
         ContainerDetailResource(container_service),
     )
+
+    application.add_route(
+        "/api/admin/host",
+        HostOverviewResource(
+            host_service
+        ),
+    )
+        
     return application
 
 

@@ -98,9 +98,11 @@ A task is complete only when its implementation has been verified.
 - [ ] Verify local Unix socket access.
 - [ ] Define the dedicated Falcon service-account requirements.
 - [ ] Implement LXD availability and error handling.
-- [ ] Implement host CPU and memory discovery.
-- [ ] Implement available storage-pool discovery.
-- [ ] Implement network and profile discovery.
+- [x] Implement host CPU and memory discovery.
+- [x] Implement available storage-pool discovery.
+- [x] Implement network and profile discovery.
+- [x] Implement the Admin-only read-only host information API.
+- [x] Test host discovery, authorization and LXD failure handling.
 - [ ] Implement image and alias discovery.
 - [ ] Implement container listing.
 - [ ] Implement container state and metadata retrieval.
