@@ -133,7 +133,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement ownership transfers.
 - [ ] Enforce quota checks during ownership transfers.
 - [ ] Prevent deleting users who still own containers.
-- [ ] Count stopped containers against allocations.
+- [x] Count stopped containers against allocations.
 - [ ] Implement host-resource budget calculations.
 - [ ] Account for external containers when determining availability.
 - [ ] Implement RAM quota validation.
@@ -144,9 +144,12 @@ A task is complete only when its implementation has been verified.
 - [ ] Reject allocations exceeding user quotas.
 - [ ] Protect quota-sensitive operations against concurrency.
 - [ ] Implement host-level resource-accounting endpoints.
-- [ ] Implement per-user quota and allocation endpoints.
+- [x] Implement per-user quota and allocation endpoints.
 - [ ] Test quota bypass attempts.
 - [ ] Test ownership and assignment permissions.
+- [x] Implement reusable transactional user-quota validation.
+- [x] Implement a read-only host allocation summary for the default LXD project.
+- [x] Implement conservative host-budget validation that rejects unmanaged containers and unverified storage pools.
 
 ## Phase 6 — Independent Metrics Collector (P0)
 
@@ -264,6 +267,8 @@ A task is complete only when its implementation has been verified.
 - [ ] Test restart and persistence behavior.
 - [ ] Review dependency and credential handling.
 - [ ] Verify that no real secrets have been committed.
+- [x] Test per-user allocation calculations and stopped-container accounting.
+- [x] Test quota-validation helpers and conservative host-budget blocking.
 
 ## Phase 10 — Deployment (P1)
 

@@ -26,6 +26,15 @@ from app.auth.sessions import (
     clear_session_cookie,
 )
 
+from app.api.allocations import (
+    HostAllocationResource,
+    MyQuotaResource,
+)
+
+from app.services.allocation_service import (
+    AllocationService,
+)
+
 
 class HealthResource:
     """Public API health check."""
@@ -86,6 +95,7 @@ def create_app(
     session_store=None,
     lxd_service=None,
     host_service=None,
+    allocation_service=None,
 ):
     """Create the Falcon application."""
 
@@ -150,7 +160,26 @@ def create_app(
             host_service
         ),
     )
-        
+
+    application.add_route(
+        "/api/me/quota",
+        MyQuotaResource(),
+    )
+
+    allocations = (
+        allocation_service
+        if allocation_service is not None
+        else AllocationService(
+            host_service=host_service,
+            lxd_service=lxd_service,
+        )
+    )
+
+    application.add_route(
+        "/api/admin/allocations",
+        HostAllocationResource(allocations),
+    )
+            
     return application
 
 
