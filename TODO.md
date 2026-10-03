@@ -86,9 +86,14 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement service-layer authorization.
 - [x] Test unauthorized and unauthenticated requests.
 - [ ] Prevent removal of the last active Admin.
+- [x] Implement reusable container-level authorization for read-only APIs.
+- [x] Verify that container authorization precedes individual LXD retrieval.
 
 ## Phase 4 — LXD Integration (P0)
 
+- [x] Implement read-only container listing for the default LXD project.
+- [x] Display unmanaged containers in the Admin's read-only API response.
+- [x] Return controlled errors for LXD failures in read-only container APIs.
 - [ ] Implement the pylxd client connection.
 - [ ] Verify local Unix socket access.
 - [ ] Define the dedicated Falcon service-account requirements.
@@ -242,7 +247,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Test session expiration and revocation.
 - [ ] Test CSRF protection.
 - [ ] Test Admin-only operations.
-- [ ] Test unassigned-container access.
+- [x] Test unassigned-container access.
 - [ ] Test cross-user terminal access.
 - [ ] Test invalid names and resource values.
 - [ ] Test resource quota enforcement.

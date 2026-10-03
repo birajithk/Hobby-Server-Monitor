@@ -6,34 +6,46 @@ class LXDService:
     """
     Provide controlled access to the local LXD server.
 
-    Authentication, authorization and request validation
-    must be performed before privileged operations.
+    Only trusted backend services may call this class.
+    Authentication and authorization are enforced by
+    the application services before protected actions.
     """
 
     def __init__(self, client=None):
         self.client = (
             client if client is not None
-            else pylxd.Client()
+            else pylxd.Client(project="default")
         )
 
     def list_containers(self):
         """
-        Retrieve the containers currently known to LXD.
+        Return containers in the default LXD project.
 
-        This method performs a read-only operation.
+        Recursion=1 retrieves container metadata in
+        one LXD request instead of fetching each
+        container's status separately.
         """
 
-        instances = self.client.instances.all()
+        instances = self.client.containers.all(
+            recursion=1
+        )
 
-        containers = []
+        return [
+            {
+                "name": instance.name,
+                "status": instance.status,
+                "project": "default",
+            }
+            for instance in instances
+        ]
 
-        for instance in instances:
+    def get_container(self, name):
+        """Retrieve a container's basic information."""
 
-            containers.append(
-                {
-                    "name": instance.name,
-                    "status": instance.status,
-                }
-            )
+        instance = self.client.containers.get(name)
 
-        return containers
+        return {
+            "name": instance.name,
+            "status": instance.status,
+            "project": "default",
+        }

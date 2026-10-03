@@ -8,6 +8,15 @@ from app.auth.oauth import (
     GoogleLoginResource,
 )
 
+from app.api.containers import (
+    ContainerDetailResource,
+    ContainerListResource,
+)
+
+from app.services.container_service import (
+    ContainerService,
+)
+
 from app.auth.middleware import AuthMiddleware
 from app.auth.sessions import (
     SessionStore,
@@ -70,7 +79,7 @@ class LogoutResource:
         }
 
 
-def create_app(session_store=None):
+def create_app(session_store=None, lxd_service=None):
     """Create the Falcon application."""
 
     sessions = (
@@ -114,6 +123,19 @@ def create_app(session_store=None):
         InvitationResource(),
     )
 
+    container_service = ContainerService(
+        lxd_service=lxd_service
+    )
+
+    application.add_route(
+        "/api/containers",
+        ContainerListResource(container_service),
+    )
+
+    application.add_route(
+        "/api/containers/{container_id}",
+        ContainerDetailResource(container_service),
+    )
     return application
 
 
