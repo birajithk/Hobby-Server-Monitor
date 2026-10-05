@@ -1,10 +1,19 @@
 export class ApiError extends Error {
-  constructor(message, status, body = null) {
+  constructor(
+    message,
+    status,
+    body = null,
+  ) {
     super(message);
 
-    this.name = "ApiError";
-    this.status = status;
-    this.body = body;
+    this.name =
+      "ApiError";
+
+    this.status =
+      status;
+
+    this.body =
+      body;
   }
 }
 
@@ -13,46 +22,70 @@ export async function apiRequest(
   path,
   options = {},
 ) {
-  const response = await fetch(path, {
-    credentials: "same-origin",
+  const {
+    headers = {},
+    ...requestOptions
+  } = options;
 
-    headers: {
-      Accept: "application/json",
-      ...(options.headers || {}),
-    },
+  const response =
+    await fetch(
+      path,
+      {
+        credentials:
+          "same-origin",
 
-    ...options,
-  });
+        ...requestOptions,
+
+        headers: {
+          Accept:
+            "application/json",
+
+          ...headers,
+        },
+      },
+    );
+
 
   let body = null;
 
   const contentType =
-    response.headers.get("content-type") || "";
+    response.headers.get(
+      "content-type",
+    ) || "";
+
 
   if (
     contentType.includes(
       "application/json",
     )
   ) {
-    body = await response.json();
+    body =
+      await response.json();
   }
+
 
   if (!response.ok) {
     throw new ApiError(
       body?.description ||
         body?.title ||
-        `Request failed with status ${response.status}`,
+        (
+          `Request failed with ` +
+          `status ${response.status}`
+        ),
       response.status,
       body,
     );
   }
+
 
   return body;
 }
 
 
 export function getCurrentUser() {
-  return apiRequest("/api/me");
+  return apiRequest(
+    "/api/me",
+  );
 }
 
 
@@ -74,9 +107,11 @@ export function getLatestMetrics(
   containerId,
 ) {
   return apiRequest(
-    `/api/containers/${encodeURIComponent(
-      containerId,
-    )}/metrics/latest`,
+    `/api/containers/${
+      encodeURIComponent(
+        containerId,
+      )
+    }/metrics/latest`,
   );
 }
 
@@ -86,10 +121,46 @@ export function getMetricHistory(
   range = "1h",
 ) {
   return apiRequest(
-    `/api/containers/${encodeURIComponent(
-      containerId,
-    )}/metrics/history?range=${encodeURIComponent(
-      range,
-    )}`,
+    `/api/containers/${
+      encodeURIComponent(
+        containerId,
+      )
+    }/metrics/history?range=${
+      encodeURIComponent(
+        range,
+      )
+    }`,
+  );
+}
+
+
+export function executeContainerCommand(
+  containerId,
+  command,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/containers/${
+      encodeURIComponent(
+        containerId,
+      )
+    }/exec`,
+    {
+      method:
+        "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+
+        "X-CSRF-Token":
+          csrfToken,
+      },
+
+      body:
+        JSON.stringify({
+          command,
+        }),
+    },
   );
 }

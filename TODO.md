@@ -208,7 +208,7 @@ A task is complete only when its implementation has been verified.
 - [x] Return exit code, stdout and stderr.
 - [x] Implement terminal audit metadata.
 - [x] Test attempts to access unassigned containers.
-- [ ] Test the container-to-host security boundary.
+- [x] Test the container-to-host security boundary.
 
 ## Phase 8 — Astro Dashboard (P0)
 
@@ -229,7 +229,7 @@ A task is complete only when its implementation has been verified.
 - [x] Implement historical charts.
 - [x] Implement time-range selection.
 - [x] Implement dashboard polling.
-- [ ] Suspend or reduce unnecessary background-tab polling.
+- [x] Suspend or reduce unnecessary background-tab polling.
 - [ ] Implement container creation.
 - [ ] Load image, network, profile and storage options dynamically.
 - [ ] Derive form bounds from available quotas and host capacity.
@@ -249,8 +249,8 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement ownership transfers.
 - [ ] Display user allocations against quotas.
 - [ ] Display host allocation summaries.
-- [ ] Implement the command terminal interface.
-- [ ] Display command output and exit status.
+- [x] Implement the command terminal interface.
+- [x] Display command output and exit status.
 - [ ] Handle loading, empty and error states.
 - [ ] Display stale metrics and LXD-unavailable states.
 - [ ] Verify responsive layouts.

@@ -1,4 +1,6 @@
 ---
+import TerminalPanel from "../components/TerminalPanel.astro";
+
 const title =
   "Container Details — Hobby Server Monitor";
 ---
@@ -227,7 +229,8 @@ const title =
 
         </section>
 
-
+        <TerminalPanel />
+        
         <section class="history-section">
 
           <div class="section-header">
@@ -1268,36 +1271,84 @@ const title =
         );
 
 
-      function startPolling() {
 
+      function stopPolling() {
         if (
           pollingTimer !== null
+        ) {
+          window.clearTimeout(
+            pollingTimer,
+          );
+
+          pollingTimer = null;
+        }
+      }
+
+
+      function schedulePolling() {
+        stopPolling();
+
+        if (
+          document.visibilityState
+          !== "visible"
         ) {
           return;
         }
 
         pollingTimer =
-          window.setInterval(
-            loadLatest,
+          window.setTimeout(
+            async () => {
+
+              pollingTimer = null;
+
+              if (
+                document.visibilityState
+                !== "visible"
+              ) {
+                return;
+              }
+
+              await loadLatest();
+
+              schedulePolling();
+            },
             10_000,
           );
       }
 
 
-      function stopPolling() {
+      document.addEventListener(
+        "visibilitychange",
+        async () => {
 
-        if (
-          pollingTimer === null
-        ) {
-          return;
-        }
+          if (
+            document.visibilityState
+            === "visible"
+          ) {
+            await loadLatest();
 
-        window.clearInterval(
-          pollingTimer,
-        );
+            schedulePolling();
+          } else {
+            stopPolling();
+          }
+        },
+      );
 
-        pollingTimer =
-          null;
+
+      window.addEventListener(
+        "pagehide",
+        stopPolling,
+      );
+
+
+      loadPage();
+
+
+      if (
+        document.visibilityState
+        === "visible"
+      ) {
+        schedulePolling();
       }
 
 

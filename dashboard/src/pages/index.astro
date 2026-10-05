@@ -823,47 +823,62 @@ const title =
 		let pollingTimer = null;
 
 
-		function startPolling() {
+		function stopPolling() {
 		if (
 			pollingTimer !== null
+		) {
+			window.clearTimeout(
+			pollingTimer,
+			);
+
+			pollingTimer = null;
+		}
+		}
+
+
+		function schedulePolling() {
+		stopPolling();
+
+		if (
+			document.visibilityState
+			!== "visible"
 		) {
 			return;
 		}
 
 		pollingTimer =
-			window.setInterval(
-			loadDashboard,
+			window.setTimeout(
+			async () => {
+
+				pollingTimer = null;
+
+				if (
+				document.visibilityState
+				!== "visible"
+				) {
+				return;
+				}
+
+				await loadDashboard();
+
+				schedulePolling();
+			},
 			10_000,
 			);
 		}
 
 
-		function stopPolling() {
-		if (
-			pollingTimer === null
-		) {
-			return;
-		}
-
-		window.clearInterval(
-			pollingTimer,
-		);
-
-		pollingTimer = null;
-		}
-
-
 		document.addEventListener(
 		"visibilitychange",
-		() => {
+		async () => {
 
 			if (
 			document.visibilityState
 			=== "visible"
 			) {
-			loadDashboard();
+			await loadDashboard();
 
-			startPolling();
+			schedulePolling();
 			} else {
 			stopPolling();
 			}
@@ -871,11 +886,20 @@ const title =
 		);
 
 
+		window.addEventListener(
+		"pagehide",
+		stopPolling,
+		);
+
+
+		loadPage();
+
+
 		if (
 		document.visibilityState
 		=== "visible"
 		) {
-		startPolling();
+		schedulePolling();
 		}
     </script>
 
