@@ -102,6 +102,127 @@ def check_host_budget(
 
     return True
 
+def check_host_budget_update(
+    report,
+    *,
+    current_ram_bytes,
+    current_cpu_cores,
+    current_disk_bytes,
+    proposed_ram_bytes,
+    proposed_cpu_cores,
+    proposed_disk_bytes,
+    storage_pool,
+):
+    """
+    Validate only the additional host resources
+    required by a resource-limit update.
+
+    Existing allocations are already included in
+    the host allocation report, so charging the
+    complete proposed allocation again would
+    double-count the container.
+    """
+
+    validate_amounts(
+        proposed_ram_bytes,
+        proposed_cpu_cores,
+        proposed_disk_bytes,
+    )
+
+    ram_increase = max(
+        0,
+        proposed_ram_bytes
+        - current_ram_bytes,
+    )
+
+    cpu_increase = max(
+        0,
+        proposed_cpu_cores
+        - current_cpu_cores,
+    )
+
+    disk_increase = max(
+        0,
+        proposed_disk_bytes
+        - current_disk_bytes,
+    )
+
+    has_increase = any(
+        (
+            ram_increase,
+            cpu_increase,
+            disk_increase,
+        )
+    )
+
+    if has_increase and report["blockers"]:
+        raise falcon.HTTPConflict(
+            title="Host allocation is blocked",
+            description=(
+                "Unmanaged, missing or unsupported "
+                "containers must be reconciled "
+                "before increasing allocations."
+            ),
+        )
+
+    if (
+        ram_increase
+        > report["memory"][
+            "allocatable_bytes"
+        ]
+    ):
+        raise falcon.HTTPConflict(
+            title="Host RAM budget exceeded",
+        )
+
+    if (
+        cpu_increase
+        > report["cpu"][
+            "allocatable_threads"
+        ]
+    ):
+        raise falcon.HTTPConflict(
+            title="Host CPU budget exceeded",
+        )
+
+    pool = next(
+        (
+            item
+            for item
+            in report["storage_pools"]
+            if item["name"]
+            == storage_pool
+        ),
+        None,
+    )
+
+    if pool is None:
+        raise falcon.HTTPBadRequest(
+            title="Unknown storage pool",
+        )
+
+    if (
+        disk_increase > 0
+        and not pool[
+            "disk_quota_verified"
+        ]
+    ):
+        raise falcon.HTTPConflict(
+            title=(
+                "Disk quota enforcement "
+                "is not verified"
+            ),
+        )
+
+    if (
+        disk_increase
+        > pool["allocatable_bytes"]
+    ):
+        raise falcon.HTTPConflict(
+            title="Host disk budget exceeded",
+        )
+
+    return True
 
 class AllocationService:
     """Provide per-host resource accounting."""

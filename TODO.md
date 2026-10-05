@@ -115,7 +115,10 @@ A task is complete only when its implementation has been verified.
 - [x] Implement validated container creation.
 - [x] Enforce restrictive container security configuration.
 - [x] Implement start, stop, restart, freeze and unfreeze.
-- [ ] Implement resource-limit updates.
+- [x] Implement resource-limit updates.
+- [x] Verify resource-limit updates against real LXD containers.
+- [x] Reject resource updates when LXD and application accounting have drifted.
+- [x] Prevent disk-limit reduction in the initial resource-update policy.
 - [ ] Implement container renaming where supported.
 - [x] Implement deletion with appropriate cleanup.
 - [x] Implement audit records for sensitive operations.
@@ -145,6 +148,7 @@ A task is complete only when its implementation has been verified.
 - [x] Reject allocations exceeding host capacity.
 - [x] Reject allocations exceeding user quotas.
 - [x] Protect quota-sensitive operations against concurrency.
+- [x] Serialize quota changes with allocation-sensitive container operations.
 - [x] Serialize allocation-sensitive operations across Falcon workers.
 - [x] Implement host-level resource-accounting endpoints.
 - [x] Implement per-user quota and allocation endpoints.
@@ -231,7 +235,10 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement CPU allowance configuration.
 - [ ] Implement ephemeral and autostart options.
 - [ ] Implement container lifecycle controls.
-- [ ] Implement resource-limit updates.
+- [x] Implement resource-limit updates.
+- [x] Verify resource-limit updates against real LXD containers.
+- [x] Reject resource updates when LXD and application accounting have drifted.
+- [x] Prevent disk-limit reduction in the initial resource-update policy.
 - [ ] Implement deletion confirmation.
 - [ ] Implement user invitations.
 - [ ] Implement user listing and role management.

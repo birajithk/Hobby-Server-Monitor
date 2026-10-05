@@ -10,6 +10,9 @@ from app.services.quota_service import (
     MAX_INTEGER,
     get_usage,
 )
+from app.services.allocation_lock import (
+    allocation_lock,
+)
 
 
 class UserAdminService:
@@ -61,95 +64,97 @@ class UserAdminService:
                     ),
                 )
 
-        with get_connection() as connection:
-            connection.execute(
-                "BEGIN IMMEDIATE"
-            )
+        with allocation_lock():
 
-            target = connection.execute(
-                """
-                SELECT id, email
-                FROM users
-                WHERE id = ?
-                """,
-                (user_id,),
-            ).fetchone()
-
-            if target is None:
-                raise falcon.HTTPNotFound(
-                    title="User not found",
+            with get_connection() as connection:
+                connection.execute(
+                    "BEGIN IMMEDIATE"
                 )
 
-            allocated = get_usage(
-                connection,
-                user_id,
-            )
+                target = connection.execute(
+                    """
+                    SELECT id, email
+                    FROM users
+                    WHERE id = ?
+                    """,
+                    (user_id,),
+                ).fetchone()
 
-            requested = {
-                "ram_bytes":
-                    payload["quota_ram_bytes"],
-                "cpu_cores":
-                    payload["quota_cpu_cores"],
-                "disk_bytes":
-                    payload["quota_disk_bytes"],
-            }
-
-            for resource, value in requested.items():
-                if value < allocated[resource]:
-                    raise falcon.HTTPConflict(
-                        title="Quota below allocation",
-                        description=(
-                            f"{resource} quota cannot "
-                            "be lower than the user's "
-                            "current allocation."
-                        ),
+                if target is None:
+                    raise falcon.HTTPNotFound(
+                        title="User not found",
                     )
 
-            now = utc_now()
-
-            connection.execute(
-                """
-                UPDATE users
-                SET quota_ram_bytes = ?,
-                    quota_cpu_cores = ?,
-                    quota_disk_bytes = ?,
-                    updated_at = ?
-                WHERE id = ?
-                """,
-                (
-                    payload["quota_ram_bytes"],
-                    payload["quota_cpu_cores"],
-                    payload["quota_disk_bytes"],
-                    now,
+                allocated = get_usage(
+                    connection,
                     user_id,
-                ),
-            )
-
-            connection.execute(
-                """
-                INSERT INTO audit_logs (
-                    id,
-                    actor_user_id,
-                    actor_email_snapshot,
-                    action,
-                    target_type,
-                    target_id,
-                    details,
-                    created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    str(uuid.uuid4()),
-                    actor["id"],
-                    actor["email"],
-                    "user.quota.update",
-                    "user",
-                    user_id,
-                    json.dumps(payload),
-                    now,
-                ),
-            )
+
+                requested = {
+                    "ram_bytes":
+                        payload["quota_ram_bytes"],
+                    "cpu_cores":
+                        payload["quota_cpu_cores"],
+                    "disk_bytes":
+                        payload["quota_disk_bytes"],
+                }
+
+                for resource, value in requested.items():
+                    if value < allocated[resource]:
+                        raise falcon.HTTPConflict(
+                            title="Quota below allocation",
+                            description=(
+                                f"{resource} quota cannot "
+                                "be lower than the user's "
+                                "current allocation."
+                            ),
+                        )
+
+                now = utc_now()
+
+                connection.execute(
+                    """
+                    UPDATE users
+                    SET quota_ram_bytes = ?,
+                        quota_cpu_cores = ?,
+                        quota_disk_bytes = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        payload["quota_ram_bytes"],
+                        payload["quota_cpu_cores"],
+                        payload["quota_disk_bytes"],
+                        now,
+                        user_id,
+                    ),
+                )
+
+                connection.execute(
+                    """
+                    INSERT INTO audit_logs (
+                        id,
+                        actor_user_id,
+                        actor_email_snapshot,
+                        action,
+                        target_type,
+                        target_id,
+                        details,
+                        created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        actor["id"],
+                        actor["email"],
+                        "user.quota.update",
+                        "user",
+                        user_id,
+                        json.dumps(payload),
+                        now,
+                    ),
+                )
 
         return {
             "user_id": user_id,

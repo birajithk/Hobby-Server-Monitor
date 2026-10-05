@@ -276,3 +276,92 @@ class LXDService:
         instance.delete(
             wait=True
         )
+
+    def update_container_resources(
+        self,
+        *,
+        name,
+        ram_bytes,
+        cpu_cores,
+        cpu_allowance_percent,
+        disk_bytes,
+    ):
+        """
+        Update resource limits on an existing container.
+
+        The root disk must be a local instance device.
+        """
+
+        instance = self.client.containers.get(
+            name
+        )
+
+        config = dict(
+            instance.config or {}
+        )
+
+        devices = {
+            key: dict(value)
+            for key, value
+            in (instance.devices or {}).items()
+        }
+
+        root_name = None
+
+        for device_name, device in devices.items():
+
+            if (
+                device.get("type") == "disk"
+                and device.get("path") == "/"
+            ):
+                root_name = device_name
+                break
+
+        if root_name is None:
+            raise ValueError(
+                "The managed container does not "
+                "have a locally configurable root disk."
+            )
+
+        config["limits.memory"] = (
+            f"{ram_bytes}B"
+        )
+
+        config["limits.cpu"] = str(
+            cpu_cores
+        )
+
+        if cpu_allowance_percent is None:
+            config.pop(
+                "limits.cpu.allowance",
+                None,
+            )
+        else:
+            config[
+                "limits.cpu.allowance"
+            ] = (
+                f"{cpu_allowance_percent}%"
+            )
+
+        devices[root_name]["size"] = (
+            f"{disk_bytes}B"
+        )
+
+        instance.config = config
+        instance.devices = devices
+
+        instance.save(
+            wait=True
+        )
+
+        refreshed = (
+            self.client.containers.get(
+                name
+            )
+        )
+
+        return {
+            "name": refreshed.name,
+            "status": refreshed.status,
+            "project": "default",
+        }

@@ -64,6 +64,14 @@ from app.services.lifecycle_service import (
 
 from app.services.lxd_service import LXDService
 
+from app.api.resources import (
+    ContainerResourceResource,
+)
+
+from app.services.resource_update_service import (
+    ResourceUpdateService,
+)
+
 class HealthResource:
     """Public API health check."""
 
@@ -125,6 +133,7 @@ def create_app(
     host_service=None,
     allocation_service=None,
     lifecycle_service=None,
+    resource_update_service=None,
 ):
     """Create the Falcon application."""
 
@@ -270,6 +279,41 @@ def create_app(
         "{container_id}",
         ContainerDeleteResource(
             lifecycle
+        ),
+    )
+
+    resource_updates = (
+        resource_update_service
+        if resource_update_service
+        is not None
+        else ResourceUpdateService(
+            lxd_service=(
+                lxd_service
+                if lxd_service
+                is not None
+                else LXDService()
+            ),
+            allocation_service=(
+                allocation_service
+                if allocation_service
+                is not None
+                else AllocationService(
+                    host_service=(
+                        host_service
+                    ),
+                    lxd_service=(
+                        lxd_service
+                    ),
+                )
+            ),
+        )
+    )
+
+    application.add_route(
+        "/api/admin/containers/"
+        "{container_id}/resources",
+        ContainerResourceResource(
+            resource_updates
         ),
     )
 
