@@ -96,21 +96,21 @@ A task is complete only when its implementation has been verified.
 - [x] Implement read-only container listing for the default LXD project.
 - [x] Display unmanaged containers in the Admin's read-only API response.
 - [x] Return controlled errors for LXD failures in read-only container APIs.
-- [ ] Implement the pylxd client connection.
-- [ ] Verify local Unix socket access.
+- [x] Implement the pylxd client connection.
+- [x] Verify local Unix socket access.
 - [ ] Define the dedicated Falcon service-account requirements.
-- [ ] Implement LXD availability and error handling.
+- [x] Implement LXD availability and error handling.
 - [x] Implement host CPU and memory discovery.
 - [x] Implement available storage-pool discovery.
 - [x] Implement network and profile discovery.
 - [x] Implement the Admin-only read-only host information API.
 - [x] Test host discovery, authorization and LXD failure handling.
 - [ ] Implement image and alias discovery.
-- [ ] Implement container listing.
-- [ ] Implement container state and metadata retrieval.
-- [ ] Implement stable application identifiers.
-- [ ] Implement external-container discovery.
-- [ ] Implement unmanaged-container read-only behavior.
+- [x] Implement container listing.
+- [x] Implement container state and metadata retrieval.
+- [x] Implement stable application identifiers.
+- [x] Implement external-container discovery.
+- [x] Implement unmanaged-container read-only behavior.
 - [x] Implement explicit container adoption.
 - [x] Implement validated container creation.
 - [x] Enforce restrictive container security configuration.
@@ -127,12 +127,12 @@ A task is complete only when its implementation has been verified.
 
 ## Phase 5 — User Management and Quotas (P0)
 
-- [ ] Implement user invitations.
+- [x] Implement user invitations.
 - [ ] Implement user listing and details.
 - [ ] Implement role changes.
 - [ ] Implement user revocation.
 - [x] Implement resource-quota configuration.
-- [ ] Implement single-owner container records.
+- [x] Implement single-owner container records.
 - [ ] Implement multiple access assignments.
 - [ ] Implement access assignment and revocation.
 - [ ] Implement ownership transfers.
@@ -140,11 +140,11 @@ A task is complete only when its implementation has been verified.
 - [ ] Prevent deleting users who still own containers.
 - [x] Count stopped containers against allocations.
 - [x] Implement host-resource budget calculations.
-- [ ] Account for external containers when determining availability.
+- [x] Account for external containers when determining availability.
 - [x] Implement RAM quota validation.
 - [x] Implement CPU core quota validation.
 - [x] Implement disk quota validation.
-- [ ] Distinguish CPU core allocation from CPU allowance.
+- [x] Distinguish CPU core allocation from CPU allowance.
 - [x] Reject allocations exceeding host capacity.
 - [x] Reject allocations exceeding user quotas.
 - [x] Protect quota-sensitive operations against concurrency.
@@ -223,13 +223,13 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement the Container User overview.
 - [x] Implement the container list and status indicators.
 - [x] Display current CPU, RAM and disk metrics.
-- [ ] Display network RX/TX data.
-- [ ] Display container metadata and uptime.
-- [ ] Implement the container detail page.
-- [ ] Implement historical charts.
-- [ ] Implement time-range selection.
+- [x] Display network RX/TX data.
+- [x] Display container metadata and uptime.
+- [x] Implement the container detail page.
+- [x] Implement historical charts.
+- [x] Implement time-range selection.
 - [x] Implement dashboard polling.
-- [ ] Suspend or reduce unnecessary background-tab polling.
+- [x] Suspend or reduce unnecessary background-tab polling.
 - [ ] Implement container creation.
 - [ ] Load image, network, profile and storage options dynamically.
 - [ ] Derive form bounds from available quotas and host capacity.
@@ -237,10 +237,10 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement CPU allowance configuration.
 - [ ] Implement ephemeral and autostart options.
 - [ ] Implement container lifecycle controls.
-- [x] Implement resource-limit updates.
-- [x] Verify resource-limit updates against real LXD containers.
-- [x] Reject resource updates when LXD and application accounting have drifted.
-- [x] Prevent disk-limit reduction in the initial resource-update policy.
+- [ ] Implement resource-limit updates.
+- [ ] Verify resource-limit updates against real LXD containers.
+- [ ] Reject resource updates when LXD and application accounting have drifted.
+- [ ] Prevent disk-limit reduction in the initial resource-update policy.
 - [ ] Implement deletion confirmation.
 - [ ] Implement user invitations.
 - [ ] Implement user listing and role management.
@@ -258,26 +258,26 @@ A task is complete only when its implementation has been verified.
 
 ## Phase 9 — Security and Correctness Testing (P0/P1)
 
-- [ ] Test login and logout.
-- [ ] Test uninvited Google accounts.
-- [ ] Test bootstrap Admin behavior.
+- [x] Test login and logout.
+- [x] Test uninvited Google accounts.
+- [x] Test bootstrap Admin behavior.
 - [ ] Test session expiration and revocation.
-- [ ] Test CSRF protection.
-- [ ] Test Admin-only operations.
+- [x] Test CSRF protection.
+- [x] Test Admin-only operations.
 - [x] Test unassigned-container access.
 - [ ] Test cross-user terminal access.
-- [ ] Test invalid names and resource values.
+- [x] Test invalid names and resource values.
 - [x] Test resource quota enforcement.
 - [x] Verify real quota rejection before privileged LXD creation.
 - [ ] Test concurrent allocation requests.
 - [ ] Test container ownership transfers.
-- [ ] Test unmanaged-container protections.
+- [x] Test unmanaged-container protections.
 - [ ] Test dangerous LXD configuration attempts.
 - [ ] Test command execution limits.
-- [ ] Test error handling when LXD is unavailable.
+- [x] Test error handling when LXD is unavailable.
 - [ ] Test recovery after LXD becomes available.
 - [ ] Test TinyFlux retention and historical queries.
-- [ ] Test restart and persistence behavior.
+- [x] Test restart and persistence behavior.
 - [ ] Review dependency and credential handling.
 - [ ] Verify that no real secrets have been committed.
 - [x] Test per-user allocation calculations and stopped-container accounting.

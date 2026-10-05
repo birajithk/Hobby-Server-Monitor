@@ -451,10 +451,13 @@ const title =
           "No IPv4";
 
 
-        return `
-          <article
-            class="container-card"
-          >
+		return `
+		<article
+			class="container-card"
+			data-container-id="${escapeHtml(id)}"
+			tabindex="0"
+			role="link"
+		>
 
             <div
               class="container-card-header"
@@ -711,6 +714,45 @@ const title =
             containerGrid.innerHTML =
               cards.join("");
 
+			containerGrid
+				.querySelectorAll(
+					".container-card[data-container-id]",
+				)
+				.forEach((card) => {
+
+					const openDetail = () => {
+					const id =
+						card.dataset.containerId;
+
+					if (!id) {
+						return;
+					}
+
+					window.location.href =
+						`/container?id=${encodeURIComponent(
+						id,
+						)}`;
+					};
+
+					card.addEventListener(
+					"click",
+					openDetail,
+					);
+
+					card.addEventListener(
+					"keydown",
+					(event) => {
+						if (
+						event.key === "Enter" ||
+						event.key === " "
+						) {
+						event.preventDefault();
+
+						openDetail();
+						}
+					},
+					);
+				});
           }
 
 
@@ -778,10 +820,63 @@ const title =
        * collected by the separate
        * collector process.
        */
-      window.setInterval(
-        loadDashboard,
-        10_000,
-      );
+		let pollingTimer = null;
+
+
+		function startPolling() {
+		if (
+			pollingTimer !== null
+		) {
+			return;
+		}
+
+		pollingTimer =
+			window.setInterval(
+			loadDashboard,
+			10_000,
+			);
+		}
+
+
+		function stopPolling() {
+		if (
+			pollingTimer === null
+		) {
+			return;
+		}
+
+		window.clearInterval(
+			pollingTimer,
+		);
+
+		pollingTimer = null;
+		}
+
+
+		document.addEventListener(
+		"visibilitychange",
+		() => {
+
+			if (
+			document.visibilityState
+			=== "visible"
+			) {
+			loadDashboard();
+
+			startPolling();
+			} else {
+			stopPolling();
+			}
+		},
+		);
+
+
+		if (
+		document.visibilityState
+		=== "visible"
+		) {
+		startPolling();
+		}
     </script>
 
   </body>
@@ -1105,6 +1200,18 @@ const title =
       16px;
   }
 
+.container-card[data-container-id] {
+  cursor: pointer;
+}
+
+.container-card[data-container-id]:hover {
+  border-color: #334155;
+}
+
+.container-card[data-container-id]:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
 
   #refresh-button {
     border:

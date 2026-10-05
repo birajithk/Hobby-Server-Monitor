@@ -1,0 +1,2034 @@
+---
+const title =
+  "Container Details — Hobby Server Monitor";
+---
+
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width"
+    />
+
+    <meta
+      name="description"
+      content="Container monitoring details"
+    />
+
+    <title>{title}</title>
+  </head>
+
+  <body>
+
+    <div class="layout">
+
+      <aside class="sidebar">
+
+        <div>
+          <div class="eyebrow">
+            RoboticGen
+          </div>
+
+          <h1>
+            Hobby Server
+            <br />
+            Monitor
+          </h1>
+        </div>
+
+        <nav>
+          <a
+            href="/"
+            class="nav-item"
+          >
+            Overview
+          </a>
+
+          <a
+            href="#"
+            class="nav-item active"
+          >
+            Container details
+          </a>
+        </nav>
+
+        <div
+          id="account"
+          class="account"
+        >
+          Loading account...
+        </div>
+
+      </aside>
+
+
+      <main>
+
+        <header class="page-header">
+
+          <div>
+            <a
+              href="/"
+              class="back-link"
+            >
+              ← Overview
+            </a>
+
+            <div class="title-row">
+
+              <div>
+                <div class="eyebrow">
+                  Container
+                </div>
+
+                <h2
+                  id="container-name"
+                >
+                  Loading...
+                </h2>
+              </div>
+
+              <span
+                id="container-status"
+                class="status-badge"
+              >
+                —
+              </span>
+
+            </div>
+          </div>
+
+          <div
+            id="connection-status"
+            class="connection-status"
+          >
+            Connecting...
+          </div>
+
+        </header>
+
+
+        <div
+          id="error-message"
+          class="error-message hidden"
+        ></div>
+
+
+        <section class="summary-grid">
+
+          <article class="summary-card">
+            <span>CPU</span>
+
+            <strong id="cpu-value">
+              —
+            </strong>
+          </article>
+
+
+          <article class="summary-card">
+            <span>Memory</span>
+
+            <strong id="memory-value">
+              —
+            </strong>
+          </article>
+
+
+          <article class="summary-card">
+            <span>Disk used</span>
+
+            <strong id="disk-value">
+              —
+            </strong>
+          </article>
+
+
+          <article class="summary-card">
+            <span>Processes</span>
+
+            <strong id="process-value">
+              —
+            </strong>
+          </article>
+
+        </section>
+
+
+        <section class="info-grid">
+
+          <article class="panel">
+            <h3>
+              Network
+            </h3>
+
+            <dl>
+              <div>
+                <dt>IPv4</dt>
+
+                <dd id="ipv4-value">
+                  —
+                </dd>
+              </div>
+
+              <div>
+                <dt>RX rate</dt>
+
+                <dd id="rx-value">
+                  —
+                </dd>
+              </div>
+
+              <div>
+                <dt>TX rate</dt>
+
+                <dd id="tx-value">
+                  —
+                </dd>
+              </div>
+            </dl>
+          </article>
+
+
+          <article class="panel">
+            <h3>
+              Runtime
+            </h3>
+
+            <dl>
+              <div>
+                <dt>Uptime</dt>
+
+                <dd id="uptime-value">
+                  —
+                </dd>
+              </div>
+
+              <div>
+                <dt>Last metric</dt>
+
+                <dd id="last-metric-value">
+                  —
+                </dd>
+              </div>
+
+              <div>
+                <dt>Metrics state</dt>
+
+                <dd id="metric-state-value">
+                  —
+                </dd>
+              </div>
+            </dl>
+          </article>
+
+        </section>
+
+
+        <section class="history-section">
+
+          <div class="section-header">
+
+            <div>
+              <div class="eyebrow">
+                TinyFlux history
+              </div>
+
+              <h3>
+                Resource history
+              </h3>
+            </div>
+
+
+            <div
+              id="range-selector"
+              class="range-selector"
+              role="group"
+              aria-label="Historical range"
+            >
+              <button
+                type="button"
+                data-range="1h"
+                class="active"
+              >
+                1h
+              </button>
+
+              <button
+                type="button"
+                data-range="6h"
+              >
+                6h
+              </button>
+
+              <button
+                type="button"
+                data-range="24h"
+              >
+                24h
+              </button>
+
+              <button
+                type="button"
+                data-range="7d"
+              >
+                7d
+              </button>
+
+              <button
+                type="button"
+                data-range="30d"
+              >
+                30d
+              </button>
+            </div>
+
+          </div>
+
+
+          <div class="chart-grid">
+
+            <article class="chart-card">
+              <div class="chart-heading">
+                <h4>CPU</h4>
+
+                <span id="cpu-chart-latest">
+                  —
+                </span>
+              </div>
+
+              <div
+                id="cpu-chart"
+                class="chart"
+              ></div>
+            </article>
+
+
+            <article class="chart-card">
+              <div class="chart-heading">
+                <h4>Memory</h4>
+
+                <span id="memory-chart-latest">
+                  —
+                </span>
+              </div>
+
+              <div
+                id="memory-chart"
+                class="chart"
+              ></div>
+            </article>
+
+
+            <article class="chart-card">
+              <div class="chart-heading">
+                <h4>Network RX</h4>
+
+                <span id="rx-chart-latest">
+                  —
+                </span>
+              </div>
+
+              <div
+                id="rx-chart"
+                class="chart"
+              ></div>
+            </article>
+
+
+            <article class="chart-card">
+              <div class="chart-heading">
+                <h4>Network TX</h4>
+
+                <span id="tx-chart-latest">
+                  —
+                </span>
+              </div>
+
+              <div
+                id="tx-chart"
+                class="chart"
+              ></div>
+            </article>
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+
+
+    <script>
+      import {
+        ApiError,
+        getCurrentUser,
+        getLatestMetrics,
+        getMetricHistory,
+      } from "../lib/api.js";
+
+
+      const params =
+        new URLSearchParams(
+          window.location.search,
+        );
+
+      const containerId =
+        params.get("id");
+
+
+      const account =
+        document.querySelector(
+          "#account",
+        );
+
+      const connectionStatus =
+        document.querySelector(
+          "#connection-status",
+        );
+
+      const errorMessage =
+        document.querySelector(
+          "#error-message",
+        );
+
+      const containerName =
+        document.querySelector(
+          "#container-name",
+        );
+
+      const containerStatus =
+        document.querySelector(
+          "#container-status",
+        );
+
+      const cpuValue =
+        document.querySelector(
+          "#cpu-value",
+        );
+
+      const memoryValue =
+        document.querySelector(
+          "#memory-value",
+        );
+
+      const diskValue =
+        document.querySelector(
+          "#disk-value",
+        );
+
+      const processValue =
+        document.querySelector(
+          "#process-value",
+        );
+
+      const ipv4Value =
+        document.querySelector(
+          "#ipv4-value",
+        );
+
+      const rxValue =
+        document.querySelector(
+          "#rx-value",
+        );
+
+      const txValue =
+        document.querySelector(
+          "#tx-value",
+        );
+
+      const uptimeValue =
+        document.querySelector(
+          "#uptime-value",
+        );
+
+      const lastMetricValue =
+        document.querySelector(
+          "#last-metric-value",
+        );
+
+      const metricStateValue =
+        document.querySelector(
+          "#metric-state-value",
+        );
+
+      const cpuChart =
+        document.querySelector(
+          "#cpu-chart",
+        );
+
+      const memoryChart =
+        document.querySelector(
+          "#memory-chart",
+        );
+
+      const rxChart =
+        document.querySelector(
+          "#rx-chart",
+        );
+
+      const txChart =
+        document.querySelector(
+          "#tx-chart",
+        );
+
+      const cpuChartLatest =
+        document.querySelector(
+          "#cpu-chart-latest",
+        );
+
+      const memoryChartLatest =
+        document.querySelector(
+          "#memory-chart-latest",
+        );
+
+      const rxChartLatest =
+        document.querySelector(
+          "#rx-chart-latest",
+        );
+
+      const txChartLatest =
+        document.querySelector(
+          "#tx-chart-latest",
+        );
+
+
+      let selectedRange =
+        "1h";
+
+      let pollingTimer =
+        null;
+
+
+      function formatBytes(
+        value,
+      ) {
+        const bytes =
+          Number(value);
+
+        if (
+          !Number.isFinite(
+            bytes,
+          )
+        ) {
+          return "—";
+        }
+
+        if (
+          bytes >=
+          1024 ** 3
+        ) {
+          return `${
+            (
+              bytes /
+              1024 ** 3
+            ).toFixed(2)
+          } GiB`;
+        }
+
+        if (
+          bytes >=
+          1024 ** 2
+        ) {
+          return `${
+            (
+              bytes /
+              1024 ** 2
+            ).toFixed(0)
+          } MiB`;
+        }
+
+        if (
+          bytes >=
+          1024
+        ) {
+          return `${
+            (
+              bytes /
+              1024
+            ).toFixed(1)
+          } KiB`;
+        }
+
+        return `${
+          bytes.toFixed(0)
+        } B`;
+      }
+
+
+      function formatRate(
+        value,
+      ) {
+        const rate =
+          Number(value);
+
+        if (
+          !Number.isFinite(
+            rate,
+          )
+        ) {
+          return "—";
+        }
+
+        return `${
+          formatBytes(rate)
+        }/s`;
+      }
+
+
+      function formatUptime(
+        value,
+      ) {
+        const total =
+          Number(value);
+
+        if (
+          !Number.isFinite(
+            total,
+          )
+        ) {
+          return "—";
+        }
+
+        const seconds =
+          Math.max(
+            0,
+            Math.floor(total),
+          );
+
+        const days =
+          Math.floor(
+            seconds / 86400,
+          );
+
+        const hours =
+          Math.floor(
+            (
+              seconds % 86400
+            ) / 3600,
+          );
+
+        const minutes =
+          Math.floor(
+            (
+              seconds % 3600
+            ) / 60,
+          );
+
+        if (days > 0) {
+          return `${days}d ${hours}h ${minutes}m`;
+        }
+
+        if (hours > 0) {
+          return `${hours}h ${minutes}m`;
+        }
+
+        return `${minutes}m`;
+      }
+
+
+      function showError(
+        message,
+      ) {
+        errorMessage.textContent =
+          message;
+
+        errorMessage.classList.remove(
+          "hidden",
+        );
+      }
+
+
+      function clearError() {
+        errorMessage.textContent =
+          "";
+
+        errorMessage.classList.add(
+          "hidden",
+        );
+      }
+
+
+      function setConnection(
+        connected,
+      ) {
+        connectionStatus.textContent =
+          connected
+            ? "Connected"
+            : "Disconnected";
+
+        connectionStatus.classList.toggle(
+          "connected",
+          connected,
+        );
+      }
+
+
+      function numericHistory(
+        history,
+        field,
+      ) {
+        return (
+          history?.points || []
+        )
+          .map((point) => ({
+            time:
+              point.time,
+
+            value:
+              Number(
+                point?.fields?.[
+                  field
+                ],
+              ),
+          }))
+          .filter(
+            (point) =>
+              Number.isFinite(
+                point.value,
+              ),
+          );
+      }
+
+
+      function renderLineChart(
+        element,
+        data,
+        {
+          formatter,
+          maxValue = null,
+        } = {},
+      ) {
+
+        if (
+          !data.length
+        ) {
+          element.innerHTML = `
+            <div class="chart-empty">
+              No data for this range.
+            </div>
+          `;
+
+          return;
+        }
+
+
+        const width =
+          600;
+
+        const height =
+          180;
+
+        const padding =
+          18;
+
+
+        let maximum =
+          maxValue !== null
+            ? maxValue
+            : Math.max(
+                ...data.map(
+                  (item) =>
+                    item.value,
+                ),
+              );
+
+
+        if (
+          !Number.isFinite(
+            maximum,
+          ) ||
+          maximum <= 0
+        ) {
+          maximum = 1;
+        }
+
+
+        const usableWidth =
+          width -
+          padding * 2;
+
+        const usableHeight =
+          height -
+          padding * 2;
+
+
+        const coordinates =
+          data.map(
+            (item, index) => {
+
+              const x =
+                data.length === 1
+                  ? width / 2
+                  : padding +
+                    (
+                      index /
+                      (
+                        data.length -
+                        1
+                      )
+                    ) *
+                    usableWidth;
+
+              const y =
+                height -
+                padding -
+                Math.min(
+                  1,
+                  item.value /
+                    maximum,
+                ) *
+                usableHeight;
+
+              return {
+                ...item,
+                x,
+                y,
+              };
+            },
+          );
+
+
+        const path =
+          coordinates
+            .map(
+              (
+                item,
+                index,
+              ) =>
+                `${
+                  index === 0
+                    ? "M"
+                    : "L"
+                } ${item.x.toFixed(
+                  2,
+                )} ${item.y.toFixed(
+                  2,
+                )}`,
+            )
+            .join(" ");
+
+
+        const latest =
+          coordinates[
+            coordinates.length -
+            1
+          ];
+
+
+        element.innerHTML = `
+          <svg
+            viewBox="0 0 ${width} ${height}"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Historical metric chart"
+          >
+            <line
+              x1="${padding}"
+              y1="${height - padding}"
+              x2="${width - padding}"
+              y2="${height - padding}"
+              class="chart-axis"
+            ></line>
+
+            <line
+              x1="${padding}"
+              y1="${padding}"
+              x2="${padding}"
+              y2="${height - padding}"
+              class="chart-axis"
+            ></line>
+
+            <path
+              d="${path}"
+              class="chart-line"
+            ></path>
+
+            <circle
+              cx="${latest.x}"
+              cy="${latest.y}"
+              r="4"
+              class="chart-dot"
+            ></circle>
+          </svg>
+
+          <div class="chart-scale">
+            <span>
+              ${
+                formatter
+                  ? formatter(
+                      maximum,
+                    )
+                  : maximum.toFixed(
+                      2,
+                    )
+              }
+            </span>
+
+            <span>0</span>
+          </div>
+        `;
+      }
+
+
+      function renderLatest(
+        response,
+      ) {
+
+        const metric =
+          response?.metric;
+
+        const fields =
+          metric?.fields || {};
+
+
+        containerName.textContent =
+          response?.container?.name ||
+          "Container";
+
+
+        const status =
+          metric?.status ||
+          "Unknown";
+
+
+        containerStatus.textContent =
+          status;
+
+        containerStatus.className =
+          `status-badge ${
+            String(status)
+              .toLowerCase()
+          }`;
+
+
+        const cpu =
+          Number(
+            fields.cpu_percent,
+          );
+
+        cpuValue.textContent =
+          Number.isFinite(cpu)
+            ? `${cpu.toFixed(2)}%`
+            : "—";
+
+
+        memoryValue.textContent =
+          formatBytes(
+            fields.memory_usage_bytes,
+          );
+
+
+        diskValue.textContent =
+          formatBytes(
+            fields.disk_usage_bytes,
+          );
+
+
+        processValue.textContent =
+          Number.isFinite(
+            Number(
+              fields.processes,
+            ),
+          )
+            ? String(
+                fields.processes,
+              )
+            : "—";
+
+
+        ipv4Value.textContent =
+          metric?.ipv4 ||
+          "—";
+
+
+        rxValue.textContent =
+          formatRate(
+            fields
+              .rx_bytes_per_second,
+          );
+
+
+        txValue.textContent =
+          formatRate(
+            fields
+              .tx_bytes_per_second,
+          );
+
+
+        uptimeValue.textContent =
+          formatUptime(
+            fields.uptime_seconds,
+          );
+
+
+        lastMetricValue.textContent =
+          metric?.time
+            ? new Date(
+                metric.time,
+              ).toLocaleString()
+            : "—";
+
+
+        metricStateValue.textContent =
+          metric?.state_available
+            ? "Available"
+            : "Unavailable";
+      }
+
+
+      function renderHistory(
+        history,
+      ) {
+
+        const cpu =
+          numericHistory(
+            history,
+            "cpu_percent",
+          );
+
+        const memory =
+          numericHistory(
+            history,
+            "memory_usage_bytes",
+          );
+
+        const rx =
+          numericHistory(
+            history,
+            "rx_bytes_per_second",
+          );
+
+        const tx =
+          numericHistory(
+            history,
+            "tx_bytes_per_second",
+          );
+
+
+        renderLineChart(
+          cpuChart,
+          cpu,
+          {
+            formatter:
+              (value) =>
+                `${value.toFixed(
+                  1,
+                )}%`,
+          },
+        );
+
+
+        renderLineChart(
+          memoryChart,
+          memory,
+          {
+            formatter:
+              formatBytes,
+          },
+        );
+
+
+        renderLineChart(
+          rxChart,
+          rx,
+          {
+            formatter:
+              formatRate,
+          },
+        );
+
+
+        renderLineChart(
+          txChart,
+          tx,
+          {
+            formatter:
+              formatRate,
+          },
+        );
+
+
+        cpuChartLatest.textContent =
+          cpu.length
+            ? `${cpu[
+                cpu.length - 1
+              ].value.toFixed(
+                2,
+              )}%`
+            : "—";
+
+
+        memoryChartLatest.textContent =
+          memory.length
+            ? formatBytes(
+                memory[
+                  memory.length - 1
+                ].value,
+              )
+            : "—";
+
+
+        rxChartLatest.textContent =
+          rx.length
+            ? formatRate(
+                rx[
+                  rx.length - 1
+                ].value,
+              )
+            : "—";
+
+
+        txChartLatest.textContent =
+          tx.length
+            ? formatRate(
+                tx[
+                  tx.length - 1
+                ].value,
+              )
+            : "—";
+      }
+
+
+      async function loadLatest() {
+
+        if (!containerId) {
+          showError(
+            "No container ID was supplied.",
+          );
+
+          return;
+        }
+
+        try {
+          const latest =
+            await getLatestMetrics(
+              containerId,
+            );
+
+          renderLatest(
+            latest,
+          );
+
+          setConnection(
+            true,
+          );
+
+        } catch (error) {
+
+          setConnection(
+            false,
+          );
+
+          if (
+            error instanceof
+              ApiError &&
+            error.status === 403
+          ) {
+            showError(
+              "You do not have access to this container.",
+            );
+
+            return;
+          }
+
+          showError(
+            error?.message ||
+            "Unable to load container metrics.",
+          );
+        }
+      }
+
+
+      async function loadHistory() {
+
+        if (!containerId) {
+          return;
+        }
+
+        try {
+          const history =
+            await getMetricHistory(
+              containerId,
+              selectedRange,
+            );
+
+          renderHistory(
+            history,
+          );
+
+        } catch (error) {
+
+          console.error(
+            error,
+          );
+
+          showError(
+            error?.message ||
+            "Unable to load historical metrics.",
+          );
+        }
+      }
+
+
+      async function loadPage() {
+
+        clearError();
+
+        try {
+          const userResponse =
+            await getCurrentUser();
+
+          const user =
+            userResponse.user ||
+            userResponse;
+
+          account.innerHTML = `
+            <strong>
+              ${
+                user.name ||
+                user.email ||
+                "User"
+              }
+            </strong>
+
+            <span>
+              ${
+                user.role ||
+                ""
+              }
+            </span>
+          `;
+
+          await Promise.all([
+            loadLatest(),
+            loadHistory(),
+          ]);
+
+        } catch (error) {
+
+          if (
+            error instanceof
+              ApiError &&
+            error.status === 401
+          ) {
+            showError(
+              "Your session has expired or you are not signed in.",
+            );
+
+            return;
+          }
+
+          showError(
+            error?.message ||
+            "Unable to load container.",
+          );
+        }
+      }
+
+
+      document
+        .querySelectorAll(
+          "#range-selector button",
+        )
+        .forEach(
+          (button) => {
+
+            button.addEventListener(
+              "click",
+              async () => {
+
+                selectedRange =
+                  button.dataset.range ||
+                  "1h";
+
+                document
+                  .querySelectorAll(
+                    "#range-selector button",
+                  )
+                  .forEach(
+                    (other) => {
+                      other.classList
+                        .toggle(
+                          "active",
+                          other ===
+                            button,
+                        );
+                    },
+                  );
+
+                await loadHistory();
+              },
+            );
+          },
+        );
+
+
+      function startPolling() {
+
+        if (
+          pollingTimer !== null
+        ) {
+          return;
+        }
+
+        pollingTimer =
+          window.setInterval(
+            loadLatest,
+            10_000,
+          );
+      }
+
+
+      function stopPolling() {
+
+        if (
+          pollingTimer === null
+        ) {
+          return;
+        }
+
+        window.clearInterval(
+          pollingTimer,
+        );
+
+        pollingTimer =
+          null;
+      }
+
+
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+
+          if (
+            document.visibilityState
+            === "visible"
+          ) {
+            loadLatest();
+
+            startPolling();
+          } else {
+            stopPolling();
+          }
+        },
+      );
+
+
+      loadPage();
+
+
+      if (
+        document.visibilityState
+        === "visible"
+      ) {
+        startPolling();
+      }
+    </script>
+
+  </body>
+</html>
+
+
+<style is:global>
+
+  :root {
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      sans-serif;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #080d16;
+  }
+
+
+  * {
+    box-sizing:
+      border-box;
+  }
+
+
+  body {
+    margin:
+      0;
+
+    min-height:
+      100vh;
+
+    background:
+      #080d16;
+  }
+
+
+  a,
+  button {
+    font:
+      inherit;
+  }
+
+
+  .layout {
+    display:
+      grid;
+
+    grid-template-columns:
+      250px
+      minmax(0, 1fr);
+
+    min-height:
+      100vh;
+  }
+
+
+  .sidebar {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      36px;
+
+    padding:
+      28px 22px;
+
+    border-right:
+      1px solid #1f2937;
+
+    background:
+      #0d1420;
+  }
+
+
+  .sidebar h1 {
+    margin:
+      7px 0 0;
+
+    font-size:
+      20px;
+  }
+
+
+  .eyebrow {
+    color:
+      #7dd3fc;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  nav {
+    flex:
+      1;
+  }
+
+
+  .nav-item {
+    display:
+      block;
+
+    padding:
+      11px 12px;
+
+    border-radius:
+      8px;
+
+    color:
+      #9ca3af;
+
+    text-decoration:
+      none;
+  }
+
+
+  .nav-item.active {
+    color:
+      #f9fafb;
+
+    background:
+      #172033;
+  }
+
+
+  .account {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      4px;
+
+    padding-top:
+      18px;
+
+    border-top:
+      1px solid #1f2937;
+  }
+
+
+  .account span {
+    color:
+      #9ca3af;
+
+    font-size:
+      13px;
+  }
+
+
+  main {
+    padding:
+      30px;
+  }
+
+
+  .page-header,
+  .title-row,
+  .section-header,
+  .chart-heading {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    gap:
+      16px;
+  }
+
+
+  .page-header h2 {
+    margin:
+      5px 0 0;
+
+    font-size:
+      28px;
+  }
+
+
+  .title-row {
+    margin-top:
+      8px;
+  }
+
+
+  .back-link {
+    color:
+      #94a3b8;
+
+    text-decoration:
+      none;
+
+    font-size:
+      13px;
+  }
+
+
+  .back-link:hover {
+    color:
+      #e2e8f0;
+  }
+
+
+  .connection-status,
+  .status-badge {
+    padding:
+      7px 11px;
+
+    border-radius:
+      999px;
+
+    background:
+      #332421;
+
+    color:
+      #fca5a5;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  .connection-status.connected,
+  .status-badge.running {
+    background:
+      #102c27;
+
+    color:
+      #6ee7b7;
+  }
+
+
+  .status-badge.frozen {
+    background:
+      #302a17;
+
+    color:
+      #fde68a;
+  }
+
+
+  .summary-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      16px;
+
+    margin-top:
+      28px;
+  }
+
+
+  .summary-card,
+  .panel,
+  .chart-card {
+    border:
+      1px solid #1f2937;
+
+    border-radius:
+      12px;
+
+    background:
+      #101826;
+  }
+
+
+  .summary-card {
+    padding:
+      18px;
+  }
+
+
+  .summary-card span {
+    color:
+      #9ca3af;
+
+    font-size:
+      13px;
+  }
+
+
+  .summary-card strong {
+    display:
+      block;
+
+    margin-top:
+      10px;
+
+    font-size:
+      23px;
+  }
+
+
+  .info-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      16px;
+
+    margin-top:
+      16px;
+  }
+
+
+  .panel {
+    padding:
+      18px;
+  }
+
+
+  .panel h3 {
+    margin:
+      0 0 14px;
+  }
+
+
+  dl {
+    margin:
+      0;
+  }
+
+
+  dl > div {
+    display:
+      flex;
+
+    justify-content:
+      space-between;
+
+    gap:
+      20px;
+
+    padding:
+      10px 0;
+
+    border-bottom:
+      1px solid #1f2937;
+  }
+
+
+  dl > div:last-child {
+    border-bottom:
+      0;
+  }
+
+
+  dt {
+    color:
+      #94a3b8;
+  }
+
+
+  dd {
+    margin:
+      0;
+
+    text-align:
+      right;
+
+    font-weight:
+      600;
+  }
+
+
+  .history-section {
+    margin-top:
+      32px;
+  }
+
+
+  .section-header h3 {
+    margin:
+      5px 0 0;
+  }
+
+
+  .range-selector {
+    display:
+      flex;
+
+    gap:
+      5px;
+
+    padding:
+      4px;
+
+    border:
+      1px solid #1f2937;
+
+    border-radius:
+      9px;
+
+    background:
+      #0b111c;
+  }
+
+
+  .range-selector button {
+    border:
+      0;
+
+    border-radius:
+      6px;
+
+    padding:
+      7px 10px;
+
+    color:
+      #94a3b8;
+
+    background:
+      transparent;
+
+    cursor:
+      pointer;
+  }
+
+
+  .range-selector button.active {
+    color:
+      #e5e7eb;
+
+    background:
+      #22304a;
+  }
+
+
+  .chart-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      16px;
+
+    margin-top:
+      16px;
+  }
+
+
+  .chart-card {
+    min-width:
+      0;
+
+    padding:
+      18px;
+  }
+
+
+  .chart-heading h4 {
+    margin:
+      0;
+  }
+
+
+  .chart-heading span {
+    color:
+      #94a3b8;
+
+    font-size:
+      13px;
+  }
+
+
+  .chart {
+    position:
+      relative;
+
+    min-height:
+      190px;
+
+    margin-top:
+      18px;
+  }
+
+
+  .chart svg {
+    display:
+      block;
+
+    width:
+      100%;
+
+    height:
+      180px;
+
+    overflow:
+      visible;
+  }
+
+
+  .chart-axis {
+    stroke:
+      #334155;
+
+    stroke-width:
+      1;
+  }
+
+
+  .chart-line {
+    fill:
+      none;
+
+    stroke:
+      #7dd3fc;
+
+    stroke-width:
+      2.5;
+
+    vector-effect:
+      non-scaling-stroke;
+  }
+
+
+  .chart-dot {
+    fill:
+      #bae6fd;
+  }
+
+
+  .chart-scale {
+    position:
+      absolute;
+
+    inset:
+      0 auto 0 0;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    justify-content:
+      space-between;
+
+    color:
+      #64748b;
+
+    font-size:
+      10px;
+
+    pointer-events:
+      none;
+  }
+
+
+  .chart-empty {
+    display:
+      grid;
+
+    place-items:
+      center;
+
+    height:
+      180px;
+
+    color:
+      #64748b;
+  }
+
+
+  .error-message {
+    margin-top:
+      20px;
+
+    padding:
+      14px;
+
+    border:
+      1px solid #7f1d1d;
+
+    border-radius:
+      8px;
+
+    background:
+      #2b1217;
+
+    color:
+      #fecaca;
+  }
+
+
+  .hidden {
+    display:
+      none;
+  }
+
+
+  @media (
+    max-width: 900px
+  ) {
+
+    .layout {
+      grid-template-columns:
+        1fr;
+    }
+
+
+    .sidebar {
+      display:
+        none;
+    }
+
+
+    .summary-grid,
+    .chart-grid {
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0, 1fr)
+        );
+    }
+
+
+    main {
+      padding:
+        20px;
+    }
+
+  }
+
+
+  @media (
+    max-width: 600px
+  ) {
+
+    .summary-grid,
+    .info-grid,
+    .chart-grid {
+      grid-template-columns:
+        1fr;
+    }
+
+
+    .section-header {
+      align-items:
+        flex-start;
+
+      flex-direction:
+        column;
+    }
+
+
+    .range-selector {
+      width:
+        100%;
+
+      overflow-x:
+        auto;
+    }
+
+  }
+
+</style>
