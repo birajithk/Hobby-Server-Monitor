@@ -27,15 +27,15 @@ A task is complete only when its implementation has been verified.
 - [x] Create docs/PROJECT_SPEC.md.
 - [x] Create docs/DECISIONS.md.
 - [x] Create TODO.md.
-- [ ] Arrange at least 25 GB of available host disk space.
+- [x] Arrange at least 25 GB of available host disk space.
 - [x] Verify the new files and make the foundation commit.
 
 ## Phase 1 — LXD Development Environment (P0)
 
 - [x] Inspect available storage drivers.
-- [ ] Create a quota-capable LXD storage pool.
+- [x] Create a quota-capable LXD storage pool.
 - [x] Verify that container disk limits are enforced.
-- [x] Configure the default profile to use the chosen pool.
+- [ ] Configure the default profile to use the chosen pool.
 - [x] Verify LXD networking.
 - [x] Discover supported Ubuntu image aliases.
 - [x] Create an unprivileged development container.
