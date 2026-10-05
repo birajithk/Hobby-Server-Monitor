@@ -1,6 +1,80 @@
 
 import pylxd
 
+class BoundedOutputBuffer:
+    """
+    Capture only a bounded amount of command output.
+
+    The websocket can continue draining data without
+    allowing an arbitrary command to consume unlimited
+    Falcon memory.
+    """
+
+    def __init__(
+        self,
+        limit_bytes,
+    ):
+        self.limit_bytes = (
+            limit_bytes
+        )
+
+        self.parts = []
+
+        self.size = 0
+
+        self.truncated = False
+
+    def __call__(
+        self,
+        chunk,
+    ):
+        if chunk is None:
+            return
+
+        if isinstance(
+            chunk,
+            str,
+        ):
+            raw = chunk.encode(
+                "utf-8",
+                errors="replace",
+            )
+        else:
+            raw = bytes(
+                chunk
+            )
+
+        remaining = (
+            self.limit_bytes
+            - self.size
+        )
+
+        if remaining <= 0:
+            self.truncated = True
+            return
+
+        kept = raw[
+            :remaining
+        ]
+
+        self.parts.append(
+            kept
+        )
+
+        self.size += len(
+            kept
+        )
+
+        if len(raw) > remaining:
+            self.truncated = True
+
+    def text(self):
+        return b"".join(
+            self.parts
+        ).decode(
+            "utf-8",
+            errors="replace",
+        )
 
 class LXDService:
     """
@@ -642,3 +716,205 @@ class LXDService:
             )
 
         return snapshots
+
+    def get_container_status(
+        self,
+        name,
+    ):
+        instance = (
+            self.client
+            .containers
+            .get(name)
+        )
+
+        return instance.status
+
+
+    def resolve_terminal_identity(
+        self,
+        name,
+        username,
+    ):
+        """
+        Resolve a Linux account to numeric UID/GID.
+
+        LXD exec accepts explicit numeric user/group
+        identities, so ordinary users never need
+        sudo or a root shell.
+        """
+
+        instance = (
+            self.client
+            .containers
+            .get(name)
+        )
+
+        result = instance.execute(
+            [
+                "/usr/bin/getent",
+                "passwd",
+                username,
+            ]
+        )
+
+        if result.exit_code != 0:
+            return None
+
+        line = (
+            result.stdout
+            .strip()
+        )
+
+        parts = line.split(
+            ":"
+        )
+
+        if len(parts) < 7:
+            return None
+
+        try:
+            uid = int(
+                parts[2]
+            )
+
+            gid = int(
+                parts[3]
+            )
+
+        except ValueError:
+            return None
+
+        home = (
+            parts[5]
+            or f"/home/{username}"
+        )
+
+        if uid == 0:
+            return None
+
+        return {
+            "username":
+                username,
+
+            "uid":
+                uid,
+
+            "gid":
+                gid,
+
+            "cwd":
+                home,
+        }
+
+
+    def execute_terminal_command(
+        self,
+        name,
+        command,
+        *,
+        uid,
+        gid,
+        cwd,
+        timeout_seconds,
+        output_limit_bytes,
+        username,
+    ):
+        """
+        Execute one bounded, non-interactive shell command.
+
+        GNU timeout runs inside the container so an
+        expired HTTP request does not leave the command
+        running indefinitely.
+        """
+
+        instance = (
+            self.client
+            .containers
+            .get(name)
+        )
+
+        if (
+            instance.status
+            != "Running"
+        ):
+            raise RuntimeError(
+                "container_not_running"
+            )
+
+        stdout_buffer = (
+            BoundedOutputBuffer(
+                output_limit_bytes
+            )
+        )
+
+        stderr_buffer = (
+            BoundedOutputBuffer(
+                output_limit_bytes
+            )
+        )
+
+        result = instance.execute(
+            [
+                "/usr/bin/timeout",
+                "--signal=TERM",
+                "--kill-after=2s",
+                f"{timeout_seconds}s",
+                "/bin/sh",
+                "-lc",
+                command,
+            ],
+            user=uid,
+            group=gid,
+            cwd=cwd,
+            environment={
+                "HOME": cwd,
+                "USER": username,
+                "LOGNAME": username,
+                "PATH": (
+                    "/usr/local/sbin:"
+                    "/usr/local/bin:"
+                    "/usr/sbin:"
+                    "/usr/bin:"
+                    "/sbin:"
+                    "/bin"
+                ),
+            },
+            decode=False,
+            stdout_handler=(
+                stdout_buffer
+            ),
+            stderr_handler=(
+                stderr_buffer
+            ),
+        )
+
+        exit_code = int(
+            result.exit_code
+        )
+
+        return {
+            "exit_code":
+                exit_code,
+
+            "stdout":
+                stdout_buffer.text(),
+
+            "stderr":
+                stderr_buffer.text(),
+
+            "stdout_truncated":
+                stdout_buffer.truncated,
+
+            "stderr_truncated":
+                stderr_buffer.truncated,
+
+            # GNU timeout normally returns 124
+            # when its deadline expires. 137
+            # covers the kill-after fallback.
+            "timed_out":
+                exit_code
+                in {
+                    124,
+                    137,
+                },
+        }

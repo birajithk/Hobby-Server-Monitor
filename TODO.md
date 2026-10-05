@@ -192,22 +192,22 @@ A task is complete only when its implementation has been verified.
 
 ## Phase 7 — Container Terminal (P0)
 
-- [ ] Implement the terminal API.
-- [ ] Validate terminal requests.
-- [ ] Enforce container-specific permissions.
-- [ ] Use actual pylxd execution.
-- [ ] Establish the Admin execution identity.
-- [ ] Provision and verify the non-root Container User identity.
-- [ ] Prevent unrestricted sudo for Container Users.
-- [ ] Implement command-length limits.
-- [ ] Implement output-size limits.
-- [ ] Implement bounded execution concurrency.
-- [ ] Implement execution timeouts.
-- [ ] Verify process termination and cancellation.
-- [ ] Reject execution on stopped containers.
-- [ ] Return exit code, stdout and stderr.
-- [ ] Implement terminal audit metadata.
-- [ ] Test attempts to access unassigned containers.
+- [x] Implement the terminal API.
+- [x] Validate terminal requests.
+- [x] Enforce container-specific permissions.
+- [x] Use actual pylxd execution.
+- [x] Establish the Admin execution identity.
+- [x] Provision and verify the non-root Container User identity.
+- [x] Prevent unrestricted sudo for Container Users.
+- [x] Implement command-length limits.
+- [x] Implement output-size limits.
+- [x] Implement bounded execution concurrency.
+- [x] Implement execution timeouts.
+- [x] Verify process termination and cancellation.
+- [x] Reject execution on stopped containers.
+- [x] Return exit code, stdout and stderr.
+- [x] Implement terminal audit metadata.
+- [x] Test attempts to access unassigned containers.
 - [ ] Test the container-to-host security boundary.
 
 ## Phase 8 — Astro Dashboard (P0)
@@ -229,7 +229,7 @@ A task is complete only when its implementation has been verified.
 - [x] Implement historical charts.
 - [x] Implement time-range selection.
 - [x] Implement dashboard polling.
-- [x] Suspend or reduce unnecessary background-tab polling.
+- [ ] Suspend or reduce unnecessary background-tab polling.
 - [ ] Implement container creation.
 - [ ] Load image, network, profile and storage options dynamically.
 - [ ] Derive form bounds from available quotas and host capacity.
@@ -265,7 +265,7 @@ A task is complete only when its implementation has been verified.
 - [x] Test CSRF protection.
 - [x] Test Admin-only operations.
 - [x] Test unassigned-container access.
-- [ ] Test cross-user terminal access.
+- [x] Test cross-user terminal access.
 - [x] Test invalid names and resource values.
 - [x] Test resource quota enforcement.
 - [x] Verify real quota rejection before privileged LXD creation.
@@ -273,7 +273,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Test container ownership transfers.
 - [x] Test unmanaged-container protections.
 - [ ] Test dangerous LXD configuration attempts.
-- [ ] Test command execution limits.
+- [x] Test command execution limits.
 - [x] Test error handling when LXD is unavailable.
 - [ ] Test recovery after LXD becomes available.
 - [ ] Test TinyFlux retention and historical queries.

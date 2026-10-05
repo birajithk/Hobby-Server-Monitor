@@ -81,6 +81,14 @@ from app.services.metrics_query_service import (
     MetricsQueryService,
 )
 
+from app.api.terminal import (
+    ContainerExecResource,
+)
+
+from app.services.terminal_service import (
+    TerminalService,
+)
+
 class HealthResource:
     """Public API health check."""
 
@@ -144,6 +152,7 @@ def create_app(
     lifecycle_service=None,
     resource_update_service=None,
     metrics_query_service=None,
+    terminal_service=None,
 ):
     """Create the Falcon application."""
 
@@ -347,6 +356,21 @@ def create_app(
         "{container_id}/metrics/history",
         MetricsHistoryResource(
             metric_queries
+        ),
+    )
+
+    terminal = (
+        terminal_service
+        if terminal_service
+        is not None
+        else TerminalService()
+    )
+
+    application.add_route(
+        "/api/containers/"
+        "{container_id}/exec",
+        ContainerExecResource(
+            terminal
         ),
     )
 

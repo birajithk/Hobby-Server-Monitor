@@ -132,3 +132,78 @@ def get_raw_retention_hours():
         )
 
     return value
+
+def _get_positive_terminal_int(
+    name,
+    default,
+    maximum,
+):
+    raw = os.environ.get(
+        name,
+        str(default),
+    )
+
+    try:
+        value = int(raw)
+    except ValueError as error:
+        raise RuntimeError(
+            f"{name} must be an integer."
+        ) from error
+
+    if value <= 0:
+        raise RuntimeError(
+            f"{name} must be positive."
+        )
+
+    if value > maximum:
+        raise RuntimeError(
+            f"{name} must not exceed {maximum}."
+        )
+
+    return value
+
+
+def get_terminal_container_user():
+    value = os.environ.get(
+        "TERMINAL_CONTAINER_USER",
+        "hsm-user",
+    ).strip()
+
+    if not value:
+        raise RuntimeError(
+            "TERMINAL_CONTAINER_USER cannot be empty."
+        )
+
+    return value
+
+
+def get_terminal_max_command_length():
+    return _get_positive_terminal_int(
+        "TERMINAL_MAX_COMMAND_LENGTH",
+        2048,
+        8192,
+    )
+
+
+def get_terminal_max_output_bytes():
+    return _get_positive_terminal_int(
+        "TERMINAL_MAX_OUTPUT_BYTES",
+        65536,
+        1048576,
+    )
+
+
+def get_terminal_timeout_seconds():
+    return _get_positive_terminal_int(
+        "TERMINAL_TIMEOUT_SECONDS",
+        10,
+        60,
+    )
+
+
+def get_terminal_max_concurrent_execs():
+    return _get_positive_terminal_int(
+        "TERMINAL_MAX_CONCURRENT_EXECS",
+        2,
+        16,
+    )
