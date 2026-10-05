@@ -39,7 +39,11 @@ from app.api.adoption import (
     ContainerAdoptionResource,
 )
 from app.api.users import (
+    UserAdminResource,
     UserQuotaAdminResource,
+    UserRevokeAdminResource,
+    UserRoleAdminResource,
+    UsersAdminResource,
 )
 from app.services.adoption_service import (
     AdoptionService,
@@ -235,6 +239,26 @@ def create_app(
     application.add_route(
         "/api/admin/allocations",
         HostAllocationResource(allocations),
+    )
+
+    application.add_route(
+        "/api/admin/users",
+        UsersAdminResource(),
+    )
+
+    application.add_route(
+        "/api/admin/users/{user_id}",
+        UserAdminResource(),
+    )
+
+    application.add_route(
+        "/api/admin/users/{user_id}/role",
+        UserRoleAdminResource(),
+    )
+
+    application.add_route(
+        "/api/admin/users/{user_id}/revoke",
+        UserRevokeAdminResource(),
     )
 
     application.add_route(

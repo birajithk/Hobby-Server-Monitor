@@ -81,13 +81,13 @@ A task is complete only when its implementation has been verified.
 - [x] Configure HttpOnly, SameSite and environment-appropriate Secure cookies.
 - [x] Implement session expiration.
 - [x] Implement logout and session invalidation.
-- [ ] Implement user-revocation session invalidation.
+- [x] Implement user-revocation session invalidation.
 - [x] Implement CSRF protection.
 - [x] Implement centralized authentication middleware.
 - [ ] Implement centralized permission rules.
 - [ ] Implement service-layer authorization.
 - [x] Test unauthorized and unauthenticated requests.
-- [ ] Prevent removal of the last active Admin.
+- [x] Prevent removal of the last active Admin.
 - [x] Implement reusable container-level authorization for read-only APIs.
 - [x] Verify that container authorization precedes individual LXD retrieval.
 
@@ -128,9 +128,9 @@ A task is complete only when its implementation has been verified.
 ## Phase 5 — User Management and Quotas (P0)
 
 - [x] Implement user invitations.
-- [ ] Implement user listing and details.
-- [ ] Implement role changes.
-- [ ] Implement user revocation.
+- [x] Implement user listing and details.
+- [x] Implement role changes.
+- [x] Implement user revocation.
 - [x] Implement resource-quota configuration.
 - [x] Implement single-owner container records.
 - [ ] Implement multiple access assignments.
