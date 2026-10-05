@@ -59,3 +59,20 @@ def use_secure_cookies():
         )
 
     return value == "true"
+
+def get_verified_disk_quota_pools():
+    """
+    Return storage pools whose disk quota enforcement
+    has been manually verified by the operator.
+    """
+
+    raw_value = os.environ.get(
+        "VERIFIED_DISK_QUOTA_POOLS",
+        "",
+    )
+
+    return {
+        value.strip()
+        for value in raw_value.split(",")
+        if value.strip()
+    }

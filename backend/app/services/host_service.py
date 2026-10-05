@@ -2,6 +2,7 @@
 import falcon
 import pylxd
 import requests
+from app.config import get_verified_disk_quota_pools
 
 from app.services.authorization import require_admin
 
@@ -72,6 +73,10 @@ class HostService:
                     "Invalid host resource information"
                 )
 
+            verified_disk_pools = (
+                get_verified_disk_quota_pools()
+            )
+
             # Storage pools.
             storage_pools = []
 
@@ -109,7 +114,9 @@ class HostService:
                             0,
                             total - used,
                         ),
-                        "disk_quota_verified": False,
+                        "disk_quota_verified": (
+                            pool.name in verified_disk_pools
+                        ),
                     }
                 )
 

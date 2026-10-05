@@ -109,7 +109,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement stable application identifiers.
 - [ ] Implement external-container discovery.
 - [ ] Implement unmanaged-container read-only behavior.
-- [ ] Implement explicit container adoption.
+- [x] Implement explicit container adoption.
 - [ ] Implement validated container creation.
 - [ ] Enforce restrictive container security configuration.
 - [ ] Implement start, stop, restart, freeze and unfreeze.
@@ -126,7 +126,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement user listing and details.
 - [ ] Implement role changes.
 - [ ] Implement user revocation.
-- [ ] Implement resource-quota configuration.
+- [x] Implement resource-quota configuration.
 - [ ] Implement single-owner container records.
 - [ ] Implement multiple access assignments.
 - [ ] Implement access assignment and revocation.

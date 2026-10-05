@@ -35,6 +35,15 @@ from app.services.allocation_service import (
     AllocationService,
 )
 
+from app.api.adoption import (
+    ContainerAdoptionResource,
+)
+from app.api.users import (
+    UserQuotaAdminResource,
+)
+from app.services.adoption_service import (
+    AdoptionService,
+)
 
 class HealthResource:
     """Public API health check."""
@@ -179,7 +188,22 @@ def create_app(
         "/api/admin/allocations",
         HostAllocationResource(allocations),
     )
-            
+
+    application.add_route(
+        "/api/admin/users/{user_id}/quota",
+        UserQuotaAdminResource(),
+    )
+
+    application.add_route(
+        "/api/admin/containers/adopt",
+        ContainerAdoptionResource(
+            AdoptionService(
+                lxd_service=lxd_service,
+                host_service=host_service,
+            )
+        ),
+    )
+
     return application
 
 

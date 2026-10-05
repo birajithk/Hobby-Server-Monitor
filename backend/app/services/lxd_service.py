@@ -49,3 +49,29 @@ class LXDService:
             "status": instance.status,
             "project": "default",
         }
+
+    def get_container_config(self, name):
+        """
+        Return the effective configuration needed
+        to evaluate an external container for adoption.
+        """
+
+        instance = self.client.containers.get(name)
+
+        return {
+            "name": instance.name,
+            "status": instance.status,
+            "project": "default",
+            "description": (
+                instance.description or ""
+            ),
+            "ephemeral": bool(instance.ephemeral),
+            "config": dict(
+                instance.expanded_config or {}
+            ),
+            "devices": {
+                key: dict(value)
+                for key, value
+                in (instance.expanded_devices or {}).items()
+            },
+        }
