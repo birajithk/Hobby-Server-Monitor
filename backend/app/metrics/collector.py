@@ -443,17 +443,30 @@ class MetricsCollector:
 
         self.cycles += 1
 
-        # Prune on startup and then roughly hourly
-        # at the normal ten-second interval.
+        # On startup, and approximately every
+        # five minutes, rebuild the most recently
+        # completed five-minute aggregate bucket.
         if (
             self.cycles == 1
-            or self.cycles >= 360
+            or self.cycles % 30 == 0
+        ):
+            self.store.refresh_five_minute_aggregate(
+                now=now
+            )
+
+        # Retention cleanup runs on startup and
+        # approximately once per hour.
+        if (
+            self.cycles == 1
+            or self.cycles % 360 == 0
         ):
             self.store.prune_raw(
                 now=now
             )
 
-            self.cycles = 1
+            self.store.prune_aggregates(
+                now=now
+            )
 
         return inserted
 

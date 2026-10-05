@@ -177,16 +177,18 @@ A task is complete only when its implementation has been verified.
 - [x] Handle LXD unavailability.
 - [x] Handle missing metrics and counter resets.
 - [x] Resume collection after failures.
-- [ ] Implement latest-metrics queries.
-- [ ] Implement historical-metrics queries.
-- [ ] Enforce authorization on metric endpoints.
-- [ ] Implement time-range selection.
-- [ ] Implement server-side chart aggregation.
+- [x] Implement latest-metrics queries.
+- [x] Implement historical-metrics queries.
+- [x] Enforce authorization on metric endpoints.
+- [x] Test metrics endpoint authorization and historical range selection.
+- [x] Implement time-range selection.
+- [x] Implement server-side chart aggregation.
 - [x] Retain raw samples for 24 hours.
-- [ ] Maintain five-minute aggregates for 30 days.
-- [ ] Implement retention and cleanup.
+- [x] Maintain five-minute aggregates for 30 days.
+- [x] Test five-minute metric aggregation.
+- [x] Implement retention and cleanup.
 - [x] Verify that stored data survives service restarts.
-- [ ] Verify that browser count does not change collection frequency.
+- [x] Verify that browser count does not change collection frequency.
 
 ## Phase 7 — Container Terminal (P0)
 
@@ -225,7 +227,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Display container metadata and uptime.
 - [ ] Implement the container detail page.
 - [ ] Implement historical charts.
-- [ ] Implement time-range selection.
+- [x] Implement time-range selection.
 - [ ] Implement dashboard polling.
 - [ ] Suspend or reduce unnecessary background-tab polling.
 - [ ] Implement container creation.

@@ -72,6 +72,15 @@ from app.services.resource_update_service import (
     ResourceUpdateService,
 )
 
+from app.api.metrics import (
+    LatestMetricsResource,
+    MetricsHistoryResource,
+)
+
+from app.services.metrics_query_service import (
+    MetricsQueryService,
+)
+
 class HealthResource:
     """Public API health check."""
 
@@ -134,6 +143,7 @@ def create_app(
     allocation_service=None,
     lifecycle_service=None,
     resource_update_service=None,
+    metrics_query_service=None,
 ):
     """Create the Falcon application."""
 
@@ -314,6 +324,29 @@ def create_app(
         "{container_id}/resources",
         ContainerResourceResource(
             resource_updates
+        ),
+    )
+
+    metric_queries = (
+        metrics_query_service
+        if metrics_query_service
+        is not None
+        else MetricsQueryService()
+    )
+
+    application.add_route(
+        "/api/containers/"
+        "{container_id}/metrics/latest",
+        LatestMetricsResource(
+            metric_queries
+        ),
+    )
+
+    application.add_route(
+        "/api/containers/"
+        "{container_id}/metrics/history",
+        MetricsHistoryResource(
+            metric_queries
         ),
     )
 
