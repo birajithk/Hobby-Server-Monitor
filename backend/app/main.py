@@ -53,6 +53,15 @@ from app.services.creation_service import (
     ContainerCreationService,
 )
 
+from app.api.lifecycle import (
+    ContainerActionResource,
+    ContainerDeleteResource,
+)
+
+from app.services.lifecycle_service import (
+    ContainerLifecycleService,
+)
+
 from app.services.lxd_service import LXDService
 
 class HealthResource:
@@ -115,6 +124,7 @@ def create_app(
     lxd_service=None,
     host_service=None,
     allocation_service=None,
+    lifecycle_service=None,
 ):
     """Create the Falcon application."""
 
@@ -236,6 +246,30 @@ def create_app(
                     creation_allocations
                 ),
             )
+        ),
+    )
+
+    lifecycle = (
+        lifecycle_service
+        if lifecycle_service is not None
+        else ContainerLifecycleService(
+            lxd_service=lxd_service
+        )
+    )
+
+    application.add_route(
+        "/api/admin/containers/"
+        "{container_id}/actions",
+        ContainerActionResource(
+            lifecycle
+        ),
+    )
+
+    application.add_route(
+        "/api/admin/containers/"
+        "{container_id}",
+        ContainerDeleteResource(
+            lifecycle
         ),
     )
 

@@ -205,3 +205,74 @@ class LXDService:
         instance.delete(
             wait=True
         )
+
+    def perform_lifecycle_action(
+        self,
+        name,
+        action,
+    ):
+        """Perform an approved lifecycle operation."""
+
+        instance = self.client.containers.get(
+            name
+        )
+
+        actions = {
+            "start": instance.start,
+            "stop": instance.stop,
+            "restart": instance.restart,
+            "freeze": instance.freeze,
+            "unfreeze": instance.unfreeze,
+        }
+
+        operation = actions[action]
+
+        if action in {
+            "stop",
+            "restart",
+        }:
+            operation(
+                timeout=30,
+                force=False,
+                wait=True,
+            )
+
+        else:
+            operation(
+                wait=True
+            )
+
+        refreshed = (
+            self.client.containers.get(
+                name
+            )
+        )
+
+        return {
+            "name": refreshed.name,
+            "status": refreshed.status,
+            "project": "default",
+        }
+
+    def delete_managed_container(
+        self,
+        name,
+    ):
+        """
+        Stop and permanently delete an LXD container.
+        """
+
+        instance = self.client.containers.get(
+            name
+        )
+
+        if instance.status != "Stopped":
+            instance.stop(
+                timeout=30,
+                force=True,
+                wait=True,
+            )
+
+        instance.delete(
+            wait=True
+        )

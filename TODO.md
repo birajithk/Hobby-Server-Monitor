@@ -42,6 +42,8 @@ A task is complete only when its implementation has been verified.
 - [x] Verify its network connectivity.
 - [x] Verify CPU, memory and disk configuration.
 - [x] Test start, stop, restart, freeze and unfreeze.
+- [x] Test managed-container deletion and allocation release.
+- [x] Verify lifecycle operations are restricted to managed containers.
 - [x] Test real LXD command execution.
 - [x] Verify cleanup and container deletion.
 - [x] Record installation and configuration commands for README.md.
@@ -112,11 +114,11 @@ A task is complete only when its implementation has been verified.
 - [x] Implement explicit container adoption.
 - [x] Implement validated container creation.
 - [x] Enforce restrictive container security configuration.
-- [ ] Implement start, stop, restart, freeze and unfreeze.
+- [x] Implement start, stop, restart, freeze and unfreeze.
 - [ ] Implement resource-limit updates.
 - [ ] Implement container renaming where supported.
-- [ ] Implement deletion with appropriate cleanup.
-- [ ] Implement audit records for sensitive operations.
+- [x] Implement deletion with appropriate cleanup.
+- [x] Implement audit records for sensitive operations.
 - [ ] Implement appropriate LXD operation timeouts.
 - [ ] Test failures and unexpected LXD responses.
 
