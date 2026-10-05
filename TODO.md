@@ -212,23 +212,23 @@ A task is complete only when its implementation has been verified.
 
 ## Phase 8 — Astro Dashboard (P0)
 
-- [ ] Initialize Astro.
-- [ ] Configure API access.
-- [ ] Implement the shared page layout.
+- [x] Initialize Astro.
+- [x] Configure API access.
+- [x] Implement the shared page layout.
 - [ ] Implement the Google login page.
 - [ ] Implement authenticated navigation.
 - [ ] Implement logout.
 - [ ] Implement role-specific navigation.
-- [ ] Implement the Admin overview.
+- [x] Implement the Admin overview.
 - [ ] Implement the Container User overview.
-- [ ] Implement the container list and status indicators.
-- [ ] Display current CPU, RAM and disk metrics.
+- [x] Implement the container list and status indicators.
+- [x] Display current CPU, RAM and disk metrics.
 - [ ] Display network RX/TX data.
 - [ ] Display container metadata and uptime.
 - [ ] Implement the container detail page.
 - [ ] Implement historical charts.
-- [x] Implement time-range selection.
-- [ ] Implement dashboard polling.
+- [ ] Implement time-range selection.
+- [x] Implement dashboard polling.
 - [ ] Suspend or reduce unnecessary background-tab polling.
 - [ ] Implement container creation.
 - [ ] Load image, network, profile and storage options dynamically.
