@@ -365,3 +365,280 @@ class LXDService:
             "status": refreshed.status,
             "project": "default",
         }
+
+    def collect_metric_snapshots(self):
+        """
+        Collect normalized state from every container.
+
+        Failure to retrieve one container's detailed
+        state does not prevent status collection for
+        the remaining containers.
+        """
+
+        instances = self.client.containers.all(
+            recursion=1
+        )
+
+        snapshots = []
+
+        for instance in instances:
+
+            config = dict(
+                instance.expanded_config
+                or {}
+            )
+
+            snapshot = {
+                "name": instance.name,
+                "project": "default",
+                "status": instance.status,
+                "status_code": int(
+                    instance.status_code
+                ),
+                "lxd_uuid": config.get(
+                    "volatile.uuid",
+                    "",
+                ),
+                "image_os": config.get(
+                    "image.os",
+                    "",
+                ),
+                "image_version": (
+                    config.get(
+                        "image.version"
+                    )
+                    or config.get(
+                        "image.release",
+                        "",
+                    )
+                ),
+                "state_available": False,
+            }
+
+            if instance.status not in {
+                "Running",
+                "Frozen",
+            }:
+                snapshots.append(
+                    snapshot
+                )
+                continue
+
+            try:
+                state = instance.state()
+
+            except Exception:
+                snapshots.append(
+                    snapshot
+                )
+                continue
+
+            cpu = (
+                getattr(
+                    state,
+                    "cpu",
+                    {},
+                )
+                or {}
+            )
+
+            memory = (
+                getattr(
+                    state,
+                    "memory",
+                    {},
+                )
+                or {}
+            )
+
+            disk = (
+                getattr(
+                    state,
+                    "disk",
+                    {},
+                )
+                or {}
+            )
+
+            network = (
+                getattr(
+                    state,
+                    "network",
+                    {},
+                )
+                or {}
+            )
+
+            root_disk = (
+                disk.get("root")
+                or {}
+            )
+
+            rx_bytes = 0
+            tx_bytes = 0
+            packets_rx = 0
+            packets_tx = 0
+
+            ipv4 = ""
+
+            for interface_name, interface in (
+                network.items()
+            ):
+
+                if interface_name == "lo":
+                    continue
+
+                counters = (
+                    interface.get(
+                        "counters",
+                        {},
+                    )
+                    or {}
+                )
+
+                rx_bytes += int(
+                    counters.get(
+                        "bytes_received",
+                        0,
+                    )
+                )
+
+                tx_bytes += int(
+                    counters.get(
+                        "bytes_sent",
+                        0,
+                    )
+                )
+
+                packets_rx += int(
+                    counters.get(
+                        "packets_received",
+                        0,
+                    )
+                )
+
+                packets_tx += int(
+                    counters.get(
+                        "packets_sent",
+                        0,
+                    )
+                )
+
+                if not ipv4:
+
+                    for address in (
+                        interface.get(
+                            "addresses",
+                            [],
+                        )
+                        or []
+                    ):
+
+                        if (
+                            address.get(
+                                "family"
+                            )
+                            == "inet"
+                            and address.get(
+                                "scope"
+                            )
+                            == "global"
+                        ):
+                            ipv4 = address.get(
+                                "address",
+                                "",
+                            )
+
+                            break
+
+            snapshot.update(
+                {
+                    "state_available":
+                        True,
+
+                    "cpu_usage_ns":
+                        int(
+                            cpu.get(
+                                "usage",
+                                0,
+                            )
+                        ),
+
+                    "memory_usage_bytes":
+                        int(
+                            memory.get(
+                                "usage",
+                                0,
+                            )
+                        ),
+
+                    "memory_total_bytes":
+                        int(
+                            memory.get(
+                                "total",
+                                0,
+                            )
+                        ),
+
+                    "disk_usage_bytes":
+                        int(
+                            root_disk.get(
+                                "usage",
+                                0,
+                            )
+                        ),
+
+                    "disk_total_bytes":
+                        int(
+                            root_disk.get(
+                                "total",
+                                0,
+                            )
+                        ),
+
+                    "rx_bytes":
+                        rx_bytes,
+
+                    "tx_bytes":
+                        tx_bytes,
+
+                    "packets_rx":
+                        packets_rx,
+
+                    "packets_tx":
+                        packets_tx,
+
+                    "processes":
+                        int(
+                            getattr(
+                                state,
+                                "processes",
+                                0,
+                            )
+                        ),
+
+                    "pid":
+                        int(
+                            getattr(
+                                state,
+                                "pid",
+                                0,
+                            )
+                        ),
+
+                    "ipv4":
+                        ipv4,
+
+                    "cpu_limit":
+                        config.get(
+                            "limits.cpu",
+                            "",
+                        ),
+                }
+            )
+
+            snapshots.append(
+                snapshot
+            )
+
+        return snapshots

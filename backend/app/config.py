@@ -76,3 +76,59 @@ def get_verified_disk_quota_pools():
         for value in raw_value.split(",")
         if value.strip()
     }
+
+def get_tinyflux_path():
+    """Return the TinyFlux metrics database path."""
+
+    return Path(
+        os.environ.get(
+            "TINYFLUX_DB_PATH",
+            "data/metrics.csv",
+        )
+    )
+
+
+def get_metrics_interval():
+    """Return collector interval in seconds."""
+
+    try:
+        value = int(
+            os.environ.get(
+                "METRICS_INTERVAL_SECONDS",
+                "10",
+            )
+        )
+    except ValueError:
+        raise RuntimeError(
+            "METRICS_INTERVAL_SECONDS must be an integer."
+        )
+
+    if value <= 0:
+        raise RuntimeError(
+            "METRICS_INTERVAL_SECONDS must be positive."
+        )
+
+    return value
+
+
+def get_raw_retention_hours():
+    """Return raw metrics retention period."""
+
+    try:
+        value = int(
+            os.environ.get(
+                "METRICS_RAW_RETENTION_HOURS",
+                "24",
+            )
+        )
+    except ValueError:
+        raise RuntimeError(
+            "METRICS_RAW_RETENTION_HOURS must be an integer."
+        )
+
+    if value <= 0:
+        raise RuntimeError(
+            "METRICS_RAW_RETENTION_HOURS must be positive."
+        )
+
+    return value
