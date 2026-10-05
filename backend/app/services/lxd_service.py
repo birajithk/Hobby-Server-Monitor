@@ -75,3 +75,133 @@ class LXDService:
                 in (instance.expanded_devices or {}).items()
             },
         }
+
+    def container_exists(self, name):
+        """Check whether an LXD container already exists."""
+
+        return self.client.containers.exists(
+            name
+        )
+
+    def create_container(
+        self,
+        *,
+        name,
+        image_alias,
+        ram_bytes,
+        cpu_cores,
+        cpu_allowance_percent,
+        disk_bytes,
+        storage_pool,
+        network_name,
+        ephemeral,
+        autostart,
+        description,
+    ):
+        """
+        Create and start a restricted LXD container.
+        """
+
+        config = {
+            "name": name,
+
+            "type": "container",
+
+            "description": description,
+
+            "ephemeral": ephemeral,
+
+            # Do not inherit arbitrary devices from
+            # the default profile.
+            "profiles": [],
+
+            "source": {
+                "type": "image",
+                "mode": "pull",
+                "server": (
+                    "https://cloud-images."
+                    "ubuntu.com/releases"
+                ),
+                "protocol": "simplestreams",
+                "alias": image_alias,
+            },
+
+            "config": {
+                "limits.cpu": str(
+                    cpu_cores
+                ),
+
+                "limits.memory": (
+                    f"{ram_bytes}B"
+                ),
+
+                "limits.cpu.allowance": (
+                    f"{cpu_allowance_percent}%"
+                ),
+
+                "security.privileged":
+                    "false",
+
+                "security.nesting":
+                    "false",
+
+                "security.idmap.isolated":
+                    "true",
+
+                "boot.autostart": (
+                    "true"
+                    if autostart
+                    else "false"
+                ),
+            },
+
+            "devices": {
+                "root": {
+                    "type": "disk",
+                    "path": "/",
+                    "pool": storage_pool,
+                    "size": (
+                        f"{disk_bytes}B"
+                    ),
+                },
+
+                "eth0": {
+                    "type": "nic",
+                    "name": "eth0",
+                    "network": network_name,
+                },
+            },
+        }
+
+        instance = self.client.containers.create(
+            config,
+            wait=True,
+        )
+
+        instance.start(
+            wait=True
+        )
+
+        return instance
+
+    def delete_container(
+        self,
+        name,
+    ):
+        """
+        Delete a container during failed provisioning cleanup.
+        """
+
+        instance = self.client.containers.get(
+            name
+        )
+
+        if instance.status_code != 102:
+            instance.stop(
+                wait=True,
+                force=True,
+            )
+
+        instance.delete(
+            wait=True
+        )

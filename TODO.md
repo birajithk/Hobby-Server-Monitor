@@ -110,8 +110,8 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement external-container discovery.
 - [ ] Implement unmanaged-container read-only behavior.
 - [x] Implement explicit container adoption.
-- [ ] Implement validated container creation.
-- [ ] Enforce restrictive container security configuration.
+- [x] Implement validated container creation.
+- [x] Enforce restrictive container security configuration.
 - [ ] Implement start, stop, restart, freeze and unfreeze.
 - [ ] Implement resource-limit updates.
 - [ ] Implement container renaming where supported.
@@ -134,16 +134,17 @@ A task is complete only when its implementation has been verified.
 - [ ] Enforce quota checks during ownership transfers.
 - [ ] Prevent deleting users who still own containers.
 - [x] Count stopped containers against allocations.
-- [ ] Implement host-resource budget calculations.
+- [x] Implement host-resource budget calculations.
 - [ ] Account for external containers when determining availability.
-- [ ] Implement RAM quota validation.
-- [ ] Implement CPU core quota validation.
-- [ ] Implement disk quota validation.
+- [x] Implement RAM quota validation.
+- [x] Implement CPU core quota validation.
+- [x] Implement disk quota validation.
 - [ ] Distinguish CPU core allocation from CPU allowance.
-- [ ] Reject allocations exceeding host capacity.
-- [ ] Reject allocations exceeding user quotas.
-- [ ] Protect quota-sensitive operations against concurrency.
-- [ ] Implement host-level resource-accounting endpoints.
+- [x] Reject allocations exceeding host capacity.
+- [x] Reject allocations exceeding user quotas.
+- [x] Protect quota-sensitive operations against concurrency.
+- [x] Serialize allocation-sensitive operations across Falcon workers.
+- [x] Implement host-level resource-accounting endpoints.
 - [x] Implement per-user quota and allocation endpoints.
 - [ ] Test quota bypass attempts.
 - [ ] Test ownership and assignment permissions.
@@ -255,7 +256,8 @@ A task is complete only when its implementation has been verified.
 - [x] Test unassigned-container access.
 - [ ] Test cross-user terminal access.
 - [ ] Test invalid names and resource values.
-- [ ] Test resource quota enforcement.
+- [x] Test resource quota enforcement.
+- [x] Verify real quota rejection before privileged LXD creation.
 - [ ] Test concurrent allocation requests.
 - [ ] Test container ownership transfers.
 - [ ] Test unmanaged-container protections.

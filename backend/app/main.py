@@ -45,6 +45,16 @@ from app.services.adoption_service import (
     AdoptionService,
 )
 
+from app.api.creation import (
+    ContainerCreationResource,
+)
+
+from app.services.creation_service import (
+    ContainerCreationService,
+)
+
+from app.services.lxd_service import LXDService
+
 class HealthResource:
     """Public API health check."""
 
@@ -200,6 +210,31 @@ def create_app(
             AdoptionService(
                 lxd_service=lxd_service,
                 host_service=host_service,
+            )
+        ),
+    )
+    
+    creation_allocations = (
+        allocation_service
+        if allocation_service is not None
+        else AllocationService(
+            host_service=host_service,
+            lxd_service=lxd_service,
+        )
+    )
+
+    application.add_route(
+        "/api/admin/containers",
+        ContainerCreationResource(
+            ContainerCreationService(
+                lxd_service=(
+                    lxd_service
+                    if lxd_service is not None
+                    else LXDService()
+                ),
+                allocation_service=(
+                    creation_allocations
+                ),
             )
         ),
     )
