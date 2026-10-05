@@ -58,6 +58,18 @@ class UserAdminResource:
             )
         )
 
+    def on_delete(
+        self,
+        req,
+        resp,
+        user_id,
+    ):
+        resp.media = (
+            self.service.delete_user(
+                req.context.user,
+                user_id,
+            )
+        )
 
 class UserRoleAdminResource:
     """Change an application user's role."""

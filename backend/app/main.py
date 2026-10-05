@@ -93,6 +93,12 @@ from app.services.terminal_service import (
     TerminalService,
 )
 
+from app.api.container_access import (
+    ContainerAccessAdminResource,
+    ContainerAccessListAdminResource,
+    ContainerOwnerTransferAdminResource,
+)
+
 class HealthResource:
     """Public API health check."""
 
@@ -199,6 +205,25 @@ def create_app(
     application.add_route(
         "/api/admin/invitations",
         InvitationResource(),
+    )
+
+    application.add_route(
+        "/api/admin/containers/"
+        "{container_id}/access",
+        ContainerAccessListAdminResource(),
+    )
+
+    application.add_route(
+        "/api/admin/containers/"
+        "{container_id}/access/"
+        "{user_id}",
+        ContainerAccessAdminResource(),
+    )
+
+    application.add_route(
+        "/api/admin/containers/"
+        "{container_id}/transfer-owner",
+        ContainerOwnerTransferAdminResource(),
     )
 
     container_service = ContainerService(

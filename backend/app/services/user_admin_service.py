@@ -604,6 +604,176 @@ class UserAdminService:
                         sessions_revoked,
                 }
 
+    def delete_user(
+        self,
+        actor,
+        user_id,
+    ):
+        """
+        Permanently remove a non-active user.
+
+        Active users must first be revoked.
+
+        Users who still own containers cannot be
+        deleted until ownership has been transferred.
+        """
+
+        require_admin(
+            actor
+        )
+
+        with allocation_lock():
+
+            with get_connection() as connection:
+
+                connection.execute(
+                    "BEGIN IMMEDIATE"
+                )
+
+                target = (
+                    self._get_user_row(
+                        connection,
+                        user_id,
+                    )
+                )
+
+                if (
+                    target["status"]
+                    == "active"
+                ):
+                    raise falcon.HTTPConflict(
+                        title=(
+                            "Active user cannot "
+                            "be deleted"
+                        ),
+                        description=(
+                            "Revoke the user "
+                            "before permanent "
+                            "deletion."
+                        ),
+                    )
+
+                owned_count = (
+                    connection.execute(
+                        """
+                        SELECT COUNT(*) AS count
+                        FROM containers
+                        WHERE owner_id = ?
+                        """,
+                        (
+                            user_id,
+                        ),
+                    ).fetchone()[
+                        "count"
+                    ]
+                )
+
+                if owned_count > 0:
+                    raise falcon.HTTPConflict(
+                        title=(
+                            "User still owns "
+                            "containers"
+                        ),
+                        description=(
+                            "Transfer ownership "
+                            "of every owned "
+                            "container before "
+                            "deleting this user."
+                        ),
+                    )
+
+                access_count = (
+                    connection.execute(
+                        """
+                        SELECT COUNT(*) AS count
+                        FROM container_access
+                        WHERE user_id = ?
+                        """,
+                        (
+                            user_id,
+                        ),
+                    ).fetchone()[
+                        "count"
+                    ]
+                )
+
+                session_count = (
+                    connection.execute(
+                        """
+                        SELECT COUNT(*) AS count
+                        FROM sessions
+                        WHERE user_id = ?
+                        """,
+                        (
+                            user_id,
+                        ),
+                    ).fetchone()[
+                        "count"
+                    ]
+                )
+
+                now = utc_now()
+
+                # Audit before deletion while the
+                # target metadata still exists.
+                self._audit(
+                    connection,
+                    actor=actor,
+                    action=(
+                        "user.delete"
+                    ),
+                    target_id=user_id,
+                    details={
+                        "email":
+                            target[
+                                "email"
+                            ],
+
+                        "role":
+                            target[
+                                "role"
+                            ],
+
+                        "status":
+                            target[
+                                "status"
+                            ],
+
+                        "access_assignments_removed":
+                            access_count,
+
+                        "sessions_removed":
+                            session_count,
+                    },
+                    created_at=now,
+                )
+
+                # container_access and sessions
+                # are removed through ON DELETE
+                # CASCADE.
+                connection.execute(
+                    """
+                    DELETE FROM users
+                    WHERE id = ?
+                    """,
+                    (
+                        user_id,
+                    ),
+                )
+
+        return {
+            "user_id":
+                user_id,
+
+            "deleted":
+                True,
+
+            "access_assignments_removed":
+                access_count,
+
+            "sessions_removed":
+                session_count,
+        }
 
     def update_quota(
         self,

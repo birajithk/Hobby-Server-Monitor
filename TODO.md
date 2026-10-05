@@ -133,11 +133,11 @@ A task is complete only when its implementation has been verified.
 - [x] Implement user revocation.
 - [x] Implement resource-quota configuration.
 - [x] Implement single-owner container records.
-- [ ] Implement multiple access assignments.
-- [ ] Implement access assignment and revocation.
-- [ ] Implement ownership transfers.
-- [ ] Enforce quota checks during ownership transfers.
-- [ ] Prevent deleting users who still own containers.
+- [x] Implement multiple access assignments.
+- [x] Implement access assignment and revocation.
+- [x] Implement ownership transfers.
+- [x] Enforce quota checks during ownership transfers.
+- [x] Prevent deleting users who still own containers.
 - [x] Count stopped containers against allocations.
 - [x] Implement host-resource budget calculations.
 - [x] Account for external containers when determining availability.
@@ -152,8 +152,8 @@ A task is complete only when its implementation has been verified.
 - [x] Serialize allocation-sensitive operations across Falcon workers.
 - [x] Implement host-level resource-accounting endpoints.
 - [x] Implement per-user quota and allocation endpoints.
-- [ ] Test quota bypass attempts.
-- [ ] Test ownership and assignment permissions.
+- [x] Test quota bypass attempts.
+- [x] Test ownership and assignment permissions.
 - [x] Implement reusable transactional user-quota validation.
 - [x] Implement a read-only host allocation summary for the default LXD project.
 - [x] Implement conservative host-budget validation that rejects unmanaged containers and unverified storage pools.
@@ -246,7 +246,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement user listing and role management.
 - [ ] Implement quota management.
 - [ ] Implement container assignments.
-- [ ] Implement ownership transfers.
+- [x] Implement ownership transfers.
 - [ ] Display user allocations against quotas.
 - [ ] Display host allocation summaries.
 - [x] Implement the command terminal interface.
@@ -270,7 +270,7 @@ A task is complete only when its implementation has been verified.
 - [x] Test resource quota enforcement.
 - [x] Verify real quota rejection before privileged LXD creation.
 - [ ] Test concurrent allocation requests.
-- [ ] Test container ownership transfers.
+- [x] Test container ownership transfers.
 - [x] Test unmanaged-container protections.
 - [ ] Test dangerous LXD configuration attempts.
 - [x] Test command execution limits.
