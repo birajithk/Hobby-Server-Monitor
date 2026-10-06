@@ -236,12 +236,12 @@ A task is complete only when its implementation has been verified.
 - [x] Implement RAM, CPU and disk controls.
 - [x] Implement CPU allowance configuration.
 - [x] Implement ephemeral and autostart options.
-- [ ] Implement container lifecycle controls.
+- [x] Implement container lifecycle controls.
 - [ ] Implement resource-limit updates.
 - [ ] Verify resource-limit updates against real LXD containers.
 - [ ] Reject resource updates when LXD and application accounting have drifted.
 - [ ] Prevent disk-limit reduction in the initial resource-update policy.
-- [ ] Implement deletion confirmation.
+- [x] Implement deletion confirmation.
 - [ ] Implement user invitations.
 - [x] Implement user listing and role management.
 - [x] Implement quota management.
@@ -291,7 +291,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Add the independent collector systemd service.
 - [ ] Configure Astro deployment.
 - [ ] Configure appropriate startup ordering.
-- [ ] Configure restart policies.
+- [x] Configure restart policies.
 - [ ] Document service logging.
 - [ ] Verify a fresh database initialization.
 - [ ] Verify service recovery.
@@ -356,7 +356,7 @@ Optional enhancements must not delay baseline security or functionality.
 - [ ] Verify that TODO.md reflects the real completion status.
 - [ ] Confirm all baseline features work end to end.
 - [ ] Confirm the collector runs independently.
-- [ ] Confirm historical metrics survive a restart.
+- [x] Confirm historical metrics survive a restart.
 - [ ] Confirm resource measurements are published.
 - [ ] Confirm all configuration variables are documented.
 - [ ] Confirm no secrets are present in Git history.

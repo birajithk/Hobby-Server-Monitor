@@ -352,3 +352,36 @@ export function createManagedContainer(payload, csrfToken) {
     body: JSON.stringify(payload),
   });
 }
+
+export function performContainerAction(
+  containerId,
+  action,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/actions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify({ action }),
+    },
+  );
+}
+
+export function deleteManagedContainer(
+  containerId,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        "X-CSRF-Token": csrfToken,
+      },
+    },
+  );
+}

@@ -122,6 +122,67 @@ const title = "Container Management — Hobby Server Monitor";
             Transfer ownership
           </button>
         </section>
+        <section class="panel" id="lifecycle-panel">
+          <h3>Container lifecycle</h3>
+
+          <p class="muted">
+            Start, stop, restart, freeze or unfreeze the selected
+            managed container.
+          </p>
+
+          <div class="lifecycle-summary">
+            <div>
+              <span>Selected container</span>
+              <strong id="lifecycle-name">—</strong>
+            </div>
+
+            <div>
+              <span>Current state</span>
+              <strong id="lifecycle-status">—</strong>
+            </div>
+          </div>
+
+          <div class="lifecycle-actions">
+            <button type="button" data-lifecycle-action="start" disabled>
+              Start
+            </button>
+
+            <button type="button" data-lifecycle-action="stop" disabled>
+              Stop
+            </button>
+
+            <button type="button" data-lifecycle-action="restart" disabled>
+              Restart
+            </button>
+
+            <button type="button" data-lifecycle-action="freeze" disabled>
+              Freeze
+            </button>
+
+            <button type="button" data-lifecycle-action="unfreeze" disabled>
+              Unfreeze
+            </button>
+          </div>
+
+          <div class="deletion-section">
+            <h4>Danger zone</h4>
+
+            <p class="muted">
+              Permanently deleting a container destroys its LXD instance
+              and filesystem. Its application allocation and access records
+              will also be removed.
+            </p>
+
+            <button
+              id="delete-container-button"
+              type="button"
+              class="danger"
+              disabled
+            >
+              Delete container permanently
+            </button>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -134,6 +195,8 @@ const title = "Container Management — Hobby Server Monitor";
         assignContainerAccess,
         revokeContainerAccess,
         transferContainerOwner,
+        performContainerAction,
+        deleteManagedContainer,
       } from "../../lib/api.js";
 
       const $ = (selector) => document.querySelector(selector);
@@ -177,6 +240,49 @@ const title = "Container Management — Hobby Server Monitor";
         }
       }
 
+      const lifecyclePermissions = {
+        start: ["Stopped"],
+        stop: ["Running", "Frozen"],
+        restart: ["Running"],
+        freeze: ["Running"],
+        unfreeze: ["Frozen"],
+      };
+
+      function selectedManagedContainer() {
+        return managedContainers.find(
+          (container) =>
+            container.id === containerSelect.value &&
+            container.managed !== false,
+        ) || null;
+      }
+
+      function updateLifecycleControls() {
+        const container = selectedManagedContainer();
+
+        const name = container?.name || container?.lxd_name || "—";
+        const status = container?.status || "Unknown";
+
+        document.querySelector("#lifecycle-name").textContent = name;
+        document.querySelector("#lifecycle-status").textContent = status;
+
+        document.querySelectorAll(
+          "[data-lifecycle-action]",
+        ).forEach((button) => {
+          const action = button.dataset.lifecycleAction;
+
+          const allowedStates = lifecyclePermissions[action] || [];
+
+          button.disabled =
+            busy ||
+            !container ||
+            !allowedStates.includes(status);
+        });
+
+        document.querySelector(
+          "#delete-container-button",
+        ).disabled = busy || !container;
+      }
+
       function syncButtons() {
         containerSelect.disabled = busy || managedContainers.length === 0;
         refreshButton.disabled = busy;
@@ -192,6 +298,7 @@ const title = "Container Management — Hobby Server Monitor";
         for (const button of accessList.querySelectorAll("button")) {
           button.disabled = busy;
         }
+        updateLifecycleControls();
       }
 
       function setBusy(value) {
@@ -379,8 +486,164 @@ const title = "Container Management — Hobby Server Monitor";
         }
       }
 
+      async function executeLifecycleAction(action) {
+        const container = selectedManagedContainer();
+
+        if (!container || busy || !csrfToken) {
+          return;
+        }
+
+        const allowedStates = lifecyclePermissions[action] || [];
+
+        if (!allowedStates.includes(container.status)) {
+          showNotice(
+            `Cannot ${action} ${container.name} while it is ${container.status}. Refresh the container list.`,
+          );
+          return;
+        }
+
+        const name = container.name || container.lxd_name;
+
+        if (["stop", "restart"].includes(action)) {
+          const confirmed = window.confirm(
+            `${action.toUpperCase()} ${name}?\n\n` +
+            "This may interrupt running applications or active terminal commands.",
+          );
+
+          if (!confirmed) {
+            return;
+          }
+        }
+
+        clearNotice();
+        setBusy(true);
+
+        try {
+          const result = await performContainerAction(
+            container.id,
+            action,
+            csrfToken,
+          );
+
+          try {
+            await loadAll();
+
+            showNotice(
+              `${name}: ${action} successful. New state: ${result.status}.`,
+              "success",
+            );
+          } catch (refreshError) {
+            console.warn(
+              "Lifecycle action completed, but the refresh failed:",
+              refreshError,
+            );
+
+            showNotice(
+              `${name}: ${action} completed, but the container list could not be refreshed.`,
+              "success",
+            );
+          }
+        } catch (error) {
+          showNotice(
+            error?.message ||
+              `Could not confirm the ${action} operation. Refresh the list to check its state.`,
+          );
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function permanentlyDeleteContainer() {
+        const container = selectedManagedContainer();
+
+        if (!container || busy || !csrfToken) {
+          return;
+        }
+
+        const name = container.name || container.lxd_name;
+
+        const typedName = window.prompt(
+          `PERMANENTLY DELETE ${name}?\n\n` +
+          "This will destroy the container and its filesystem.\n" +
+          "This operation cannot be undone.\n\n" +
+          `Type "${name}" to continue:`,
+        );
+
+        if (typedName === null) {
+          return;
+        }
+
+        if (typedName !== name) {
+          showNotice(
+            "Deletion cancelled: container name did not match.",
+          );
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Final confirmation:\n\n` +
+          `Permanently delete ${name} and all its data?`,
+        );
+
+        if (!confirmed) {
+          return;
+        }
+
+        clearNotice();
+        setBusy(true);
+
+        try {
+          await deleteManagedContainer(
+            container.id,
+            csrfToken,
+          );
+
+          try {
+            if (
+              sessionStorage.getItem("hsm:last-container-id") ===
+              container.id
+            ) {
+              sessionStorage.removeItem("hsm:last-container-id");
+            }
+          } catch {
+            // The application continues without session storage.
+          }
+
+          try {
+            await loadAll();
+
+            showNotice(
+              `${name} was permanently deleted.`,
+              "success",
+            );
+          } catch (refreshError) {
+            console.warn(
+              "Container deleted, but unable to refresh:",
+              refreshError,
+            );
+
+            showNotice(
+              `${name} was deleted, but the container list could not be refreshed.`,
+              "success",
+            );
+          }
+        } catch (error) {
+          showNotice(
+            error?.message ||
+              "Deletion could not be confirmed. Check LXD before retrying.",
+          );
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      document.querySelector(
+        "#delete-container-button",
+      ).addEventListener("click", permanentlyDeleteContainer);
+
       containerSelect.addEventListener("change", () => {
         clearNotice();
+        updateLifecycleControls();
 
         loadAccess().catch((error) => {
           showNotice(error?.message || "Unable to load container access.");
@@ -451,6 +714,17 @@ const title = "Container Management — Hobby Server Monitor";
         } finally {
           setBusy(false);
         }
+      });
+
+
+      document.querySelectorAll(
+        "[data-lifecycle-action]",
+      ).forEach((button) => {
+        button.addEventListener("click", () => {
+          executeLifecycleAction(
+            button.dataset.lifecycleAction,
+          );
+        });
       });
 
       async function initialize() {
@@ -702,6 +976,69 @@ const title = "Container Management — Hobby Server Monitor";
 
       .create-container-link:hover {
         background: #30415e;
+      }
+
+      .lifecycle-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .lifecycle-summary > div {
+        padding: 14px;
+        background: #0b111c;
+        border-radius: 8px;
+      }
+
+      .lifecycle-summary span {
+        display: block;
+        color: #94a3b8;
+        font-size: 12px;
+      }
+
+      .lifecycle-summary strong {
+        display: block;
+        margin-top: 7px;
+        font-size: 16px;
+      }
+
+      .lifecycle-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .lifecycle-actions button {
+        min-width: 100px;
+      }
+
+      .deletion-section {
+        margin-top: 30px;
+        padding: 20px;
+        border: 1px solid #7f1d1d;
+        border-radius: 10px;
+        background: #1c1119;
+      }
+
+      .deletion-section h4 {
+        margin: 0 0 10px;
+        color: #fca5a5;
+      }
+
+      .deletion-section p {
+        margin-bottom: 12px;
+      }
+
+      @media (max-width: 600px) {
+        .lifecycle-summary {
+          grid-template-columns: 1fr;
+        }
+
+        .lifecycle-actions button {
+          flex: 1;
+        }
       }
     </style>
     <script>
