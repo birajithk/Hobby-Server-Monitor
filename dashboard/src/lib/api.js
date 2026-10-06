@@ -385,3 +385,14 @@ export function deleteManagedContainer(
     },
   );
 }
+
+export function inviteUser(payload, csrfToken) {
+  return apiRequest("/api/admin/invitations", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+}
