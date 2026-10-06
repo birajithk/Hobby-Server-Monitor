@@ -230,12 +230,12 @@ A task is complete only when its implementation has been verified.
 - [x] Implement time-range selection.
 - [x] Implement dashboard polling.
 - [x] Suspend or reduce unnecessary background-tab polling.
-- [ ] Implement container creation.
+- [x] Implement container creation.
 - [ ] Load image, network, profile and storage options dynamically.
-- [ ] Derive form bounds from available quotas and host capacity.
-- [ ] Implement RAM, CPU and disk controls.
-- [ ] Implement CPU allowance configuration.
-- [ ] Implement ephemeral and autostart options.
+- [x] Derive form bounds from available quotas and host capacity.
+- [x] Implement RAM, CPU and disk controls.
+- [x] Implement CPU allowance configuration.
+- [x] Implement ephemeral and autostart options.
 - [ ] Implement container lifecycle controls.
 - [ ] Implement resource-limit updates.
 - [ ] Verify resource-limit updates against real LXD containers.

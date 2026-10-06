@@ -43,6 +43,10 @@ const title = "Container Management — Hobby Server Monitor";
             </p>
           </div>
 
+          <a href="/admin/containers/new" class="create-container-link">
+            + Create container
+          </a>
+
           <button id="refresh-button" type="button">
             Refresh
           </button>
@@ -682,6 +686,22 @@ const title = "Container Management — Hobby Server Monitor";
           align-items: stretch;
           flex-direction: column;
         }
+      }
+
+      .create-container-link {
+        display: inline-block;
+        padding: 10px 14px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        background: #22304a;
+        color: #e5e7eb;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .create-container-link:hover {
+        background: #30415e;
       }
     </style>
     <script>

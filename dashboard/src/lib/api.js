@@ -333,3 +333,22 @@ export function transferContainerOwner(
     },
   );
 }
+
+export function getAdminHost() {
+  return apiRequest("/api/admin/host");
+}
+
+export function getAdminAllocations() {
+  return apiRequest("/api/admin/allocations");
+}
+
+export function createManagedContainer(payload, csrfToken) {
+  return apiRequest("/api/admin/containers", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+}
