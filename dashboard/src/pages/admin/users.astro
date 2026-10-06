@@ -1,0 +1,2130 @@
+---
+const title =
+  "User Management — Hobby Server Monitor";
+---
+
+<!doctype html>
+
+<html lang="en">
+
+  <head>
+
+    <meta
+      charset="UTF-8"
+    />
+
+    <meta
+      name="viewport"
+      content="width=device-width"
+    />
+
+    <meta
+      name="description"
+      content="Hobby Server Monitor user administration"
+    />
+
+    <title>
+      {title}
+    </title>
+
+  </head>
+
+
+  <body>
+
+    <div class="layout">
+
+      <aside class="sidebar">
+
+        <div>
+
+          <div class="eyebrow">
+            RoboticGen
+          </div>
+
+          <h1>
+            Hobby Server
+            <br />
+            Monitor
+          </h1>
+
+        </div>
+
+
+        <nav>
+
+          <a
+            href="/"
+            class="nav-item"
+          >
+            Overview
+          </a>
+
+          <a
+            href="/admin/users"
+            class="nav-item active"
+          >
+            Users
+          </a>
+
+        </nav>
+
+
+        <div
+          id="account"
+          class="account"
+        >
+          Loading account...
+        </div>
+
+      </aside>
+
+
+      <main>
+
+        <header class="page-header">
+
+          <div>
+
+            <div class="eyebrow">
+              Administration
+            </div>
+
+            <h2>
+              Users
+            </h2>
+
+            <p>
+              Manage roles, account status,
+              quotas and resource allocations.
+            </p>
+
+          </div>
+
+
+          <button
+            id="refresh-button"
+            type="button"
+          >
+            Refresh
+          </button>
+
+        </header>
+
+
+        <div
+          id="error-message"
+          class="message error hidden"
+        ></div>
+
+
+        <div
+          id="success-message"
+          class="message success hidden"
+        ></div>
+
+
+        <section class="summary-grid">
+
+          <article>
+            <span>
+              Total users
+            </span>
+
+            <strong id="total-users">
+              —
+            </strong>
+          </article>
+
+
+          <article>
+            <span>
+              Active
+            </span>
+
+            <strong id="active-users">
+              —
+            </strong>
+          </article>
+
+
+          <article>
+            <span>
+              Admins
+            </span>
+
+            <strong id="admin-users">
+              —
+            </strong>
+          </article>
+
+
+          <article>
+            <span>
+              Revoked
+            </span>
+
+            <strong id="revoked-users">
+              —
+            </strong>
+          </article>
+
+        </section>
+
+
+        <section class="panel">
+
+          <div class="panel-heading">
+
+            <div>
+
+              <h3>
+                Application users
+              </h3>
+
+              <p>
+                Allocation is charged only to
+                container owners.
+              </p>
+
+            </div>
+
+
+            <span
+              id="load-state"
+              class="load-state"
+            >
+              Loading
+            </span>
+
+          </div>
+
+
+          <div
+            id="users"
+            class="users"
+          >
+            <div class="empty">
+              Loading users...
+            </div>
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+
+
+    <script>
+
+      import {
+        ApiError,
+        getAdminUsers,
+        getCurrentUser,
+        revokeUser,
+        updateUserQuota,
+        updateUserRole,
+      } from "../../lib/api.js";
+
+
+      const account =
+        document.querySelector(
+          "#account",
+        );
+
+      const usersContainer =
+        document.querySelector(
+          "#users",
+        );
+
+      const errorMessage =
+        document.querySelector(
+          "#error-message",
+        );
+
+      const successMessage =
+        document.querySelector(
+          "#success-message",
+        );
+
+      const refreshButton =
+        document.querySelector(
+          "#refresh-button",
+        );
+
+      const loadState =
+        document.querySelector(
+          "#load-state",
+        );
+
+      const totalUsers =
+        document.querySelector(
+          "#total-users",
+        );
+
+      const activeUsers =
+        document.querySelector(
+          "#active-users",
+        );
+
+      const adminUsers =
+        document.querySelector(
+          "#admin-users",
+        );
+
+      const revokedUsers =
+        document.querySelector(
+          "#revoked-users",
+        );
+
+
+      let csrfToken = null;
+
+      let currentUserId = null;
+
+      let loading = false;
+
+
+      function escapeHtml(
+        value,
+      ) {
+        return String(
+          value ?? "",
+        )
+          .replaceAll(
+            "&",
+            "&amp;",
+          )
+          .replaceAll(
+            "<",
+            "&lt;",
+          )
+          .replaceAll(
+            ">",
+            "&gt;",
+          )
+          .replaceAll(
+            '"',
+            "&quot;",
+          )
+          .replaceAll(
+            "'",
+            "&#039;",
+          );
+      }
+
+
+      function formatBytes(
+        value,
+      ) {
+        const bytes =
+          Number(value);
+
+        if (
+          !Number.isFinite(
+            bytes,
+          )
+        ) {
+          return "—";
+        }
+
+        if (
+          bytes >=
+          1024 ** 3
+        ) {
+          return `${
+            (
+              bytes /
+              1024 ** 3
+            ).toFixed(2)
+          } GiB`;
+        }
+
+        if (
+          bytes >=
+          1024 ** 2
+        ) {
+          return `${
+            (
+              bytes /
+              1024 ** 2
+            ).toFixed(0)
+          } MiB`;
+        }
+
+        return `${
+          bytes.toFixed(0)
+        } B`;
+      }
+
+
+      function bytesToGiB(
+        value,
+      ) {
+        const number =
+          Number(value);
+
+        if (
+          !Number.isFinite(
+            number,
+          )
+        ) {
+          return 0;
+        }
+
+        return Number(
+          (
+            number /
+            1024 ** 3
+          ).toFixed(2),
+        );
+      }
+
+
+      function gibToBytes(
+        value,
+      ) {
+        return Math.round(
+          Number(value)
+          * 1024 ** 3,
+        );
+      }
+
+
+      function percentage(
+        allocated,
+        quota,
+      ) {
+        const used =
+          Number(
+            allocated,
+          );
+
+        const maximum =
+          Number(
+            quota,
+          );
+
+        if (
+          !Number.isFinite(
+            used,
+          )
+          ||
+          !Number.isFinite(
+            maximum,
+          )
+          ||
+          maximum <= 0
+        ) {
+          return 0;
+        }
+
+        return Math.min(
+          100,
+          Math.max(
+            0,
+            (
+              used /
+              maximum
+            )
+            * 100,
+          ),
+        );
+      }
+
+
+      function clearMessages() {
+
+        errorMessage.classList.add(
+          "hidden",
+        );
+
+        successMessage.classList.add(
+          "hidden",
+        );
+      }
+
+
+      function showError(
+        message,
+      ) {
+        successMessage.classList.add(
+          "hidden",
+        );
+
+        errorMessage.textContent =
+          message;
+
+        errorMessage.classList.remove(
+          "hidden",
+        );
+      }
+
+
+      function showSuccess(
+        message,
+      ) {
+        errorMessage.classList.add(
+          "hidden",
+        );
+
+        successMessage.textContent =
+          message;
+
+        successMessage.classList.remove(
+          "hidden",
+        );
+      }
+
+
+      function updateSummary(
+        users,
+      ) {
+        totalUsers.textContent =
+          users.length;
+
+        activeUsers.textContent =
+          users.filter(
+            user =>
+              user.status
+              === "active",
+          ).length;
+
+        adminUsers.textContent =
+          users.filter(
+            user =>
+              user.role
+              === "admin"
+              &&
+              user.status
+              === "active",
+          ).length;
+
+        revokedUsers.textContent =
+          users.filter(
+            user =>
+              user.status
+              === "revoked",
+          ).length;
+      }
+
+
+      function usageRow(
+        label,
+        allocated,
+        quota,
+        formatter,
+      ) {
+
+        const percent =
+          percentage(
+            allocated,
+            quota,
+          );
+
+        return `
+          <div class="usage-row">
+
+            <div class="usage-heading">
+
+              <span>
+                ${escapeHtml(label)}
+              </span>
+
+              <span>
+                ${
+                  escapeHtml(
+                    formatter(
+                      allocated,
+                    ),
+                  )
+                }
+                /
+                ${
+                  escapeHtml(
+                    formatter(
+                      quota,
+                    ),
+                  )
+                }
+              </span>
+
+            </div>
+
+            <div class="progress">
+              <span
+                style="width: ${percent}%"
+              ></span>
+            </div>
+
+          </div>
+        `;
+      }
+
+
+      function renderUsers(
+        users,
+      ) {
+
+        updateSummary(
+          users,
+        );
+
+
+        if (
+          users.length === 0
+        ) {
+
+          usersContainer.innerHTML = `
+            <div class="empty">
+              No users found.
+            </div>
+          `;
+
+          return;
+        }
+
+
+        usersContainer.innerHTML =
+          users.map(
+            user => {
+
+              const quota =
+                user.quota || {};
+
+              const allocation =
+                user.allocation || {};
+
+              const isSelf =
+                user.id ===
+                currentUserId;
+
+              const revoked =
+                user.status ===
+                "revoked";
+
+
+              return `
+                <article
+                  class="user-card"
+                  data-user-id="${
+                    escapeHtml(
+                      user.id,
+                    )
+                  }"
+                >
+
+                  <div class="user-top">
+
+                    <div>
+
+                      <div class="user-name">
+                        ${
+                          escapeHtml(
+                            user.name ||
+                            user.email,
+                          )
+                        }
+
+                        ${
+                          isSelf
+                            ? `
+                              <span class="you">
+                                You
+                              </span>
+                            `
+                            : ""
+                        }
+                      </div>
+
+                      <div class="email">
+                        ${
+                          escapeHtml(
+                            user.email,
+                          )
+                        }
+                      </div>
+
+                    </div>
+
+
+                    <span
+                      class="status ${
+                        escapeHtml(
+                          user.status,
+                        )
+                      }"
+                    >
+                      ${
+                        escapeHtml(
+                          user.status,
+                        )
+                      }
+                    </span>
+
+                  </div>
+
+
+                  <div class="counts">
+
+                    <div>
+                      <span>
+                        Owned
+                      </span>
+
+                      <strong>
+                        ${
+                          escapeHtml(
+                            user
+                              .owned_container_count,
+                          )
+                        }
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>
+                        Assigned
+                      </span>
+
+                      <strong>
+                        ${
+                          escapeHtml(
+                            user
+                              .assigned_container_count,
+                          )
+                        }
+                      </strong>
+                    </div>
+
+                  </div>
+
+
+                  <div class="usage">
+
+                    ${
+                      usageRow(
+                        "RAM",
+                        allocation
+                          .ram_bytes,
+                        quota
+                          .ram_bytes,
+                        formatBytes,
+                      )
+                    }
+
+                    ${
+                      usageRow(
+                        "CPU",
+                        allocation
+                          .cpu_cores,
+                        quota
+                          .cpu_cores,
+                        value =>
+                          `${
+                            Number(
+                              value || 0,
+                            )
+                          } cores`,
+                      )
+                    }
+
+                    ${
+                      usageRow(
+                        "Disk",
+                        allocation
+                          .disk_bytes,
+                        quota
+                          .disk_bytes,
+                        formatBytes,
+                      )
+                    }
+
+                  </div>
+
+
+                  <div class="editor-grid">
+
+                    <label>
+
+                      Role
+
+                      <select
+                        class="role-input"
+                        ${
+                          revoked
+                            ? "disabled"
+                            : ""
+                        }
+                      >
+
+                        <option
+                          value="container_user"
+                          ${
+                            user.role
+                            ===
+                            "container_user"
+                              ? "selected"
+                              : ""
+                          }
+                        >
+                          Container User
+                        </option>
+
+                        <option
+                          value="admin"
+                          ${
+                            user.role
+                            === "admin"
+                              ? "selected"
+                              : ""
+                          }
+                        >
+                          Admin
+                        </option>
+
+                      </select>
+
+                    </label>
+
+
+                    <label>
+
+                      RAM quota (GiB)
+
+                      <input
+                        class="quota-ram"
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        value="${
+                          bytesToGiB(
+                            quota
+                              .ram_bytes,
+                          )
+                        }"
+                        ${
+                          revoked
+                            ? "disabled"
+                            : ""
+                        }
+                      />
+
+                    </label>
+
+
+                    <label>
+
+                      CPU quota
+
+                      <input
+                        class="quota-cpu"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="${
+                          escapeHtml(
+                            quota
+                              .cpu_cores,
+                          )
+                        }"
+                        ${
+                          revoked
+                            ? "disabled"
+                            : ""
+                        }
+                      />
+
+                    </label>
+
+
+                    <label>
+
+                      Disk quota (GiB)
+
+                      <input
+                        class="quota-disk"
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        value="${
+                          bytesToGiB(
+                            quota
+                              .disk_bytes,
+                          )
+                        }"
+                        ${
+                          revoked
+                            ? "disabled"
+                            : ""
+                        }
+                      />
+
+                    </label>
+
+                  </div>
+
+
+                  <div class="actions">
+
+                    <button
+                      type="button"
+                      class="save-role secondary"
+                      ${
+                        revoked
+                          ? "disabled"
+                          : ""
+                      }
+                    >
+                      Save role
+                    </button>
+
+                    <button
+                      type="button"
+                      class="save-quota secondary"
+                      ${
+                        revoked
+                          ? "disabled"
+                          : ""
+                      }
+                    >
+                      Save quota
+                    </button>
+
+                    <button
+                      type="button"
+                      class="revoke danger"
+                      ${
+                        revoked
+                          ? "disabled"
+                          : ""
+                      }
+                    >
+                      ${
+                        revoked
+                          ? "Revoked"
+                          : "Revoke user"
+                      }
+                    </button>
+
+                  </div>
+
+                </article>
+              `;
+
+            },
+          ).join("");
+
+
+        usersContainer
+          .querySelectorAll(
+            ".user-card",
+          )
+          .forEach(
+            card => {
+
+              const userId =
+                card.dataset.userId;
+
+
+              card
+                .querySelector(
+                  ".save-role",
+                )
+                ?.addEventListener(
+                  "click",
+                  () =>
+                    saveRole(
+                      card,
+                      userId,
+                    ),
+                );
+
+
+              card
+                .querySelector(
+                  ".save-quota",
+                )
+                ?.addEventListener(
+                  "click",
+                  () =>
+                    saveQuota(
+                      card,
+                      userId,
+                    ),
+                );
+
+
+              card
+                .querySelector(
+                  ".revoke",
+                )
+                ?.addEventListener(
+                  "click",
+                  () =>
+                    revokeAccount(
+                      card,
+                      userId,
+                    ),
+                );
+
+            },
+          );
+      }
+
+
+      async function saveRole(
+        card,
+        userId,
+      ) {
+
+        clearMessages();
+
+        const role =
+          card.querySelector(
+            ".role-input",
+          ).value;
+
+
+        try {
+
+          await updateUserRole(
+            userId,
+            role,
+            csrfToken,
+          );
+
+          showSuccess(
+            "User role updated.",
+          );
+
+          await loadUsers();
+
+        } catch (error) {
+
+          showError(
+            error?.message ||
+            "Unable to update role.",
+          );
+        }
+      }
+
+
+      async function saveQuota(
+        card,
+        userId,
+      ) {
+
+        clearMessages();
+
+
+        const ramGiB =
+          Number(
+            card.querySelector(
+              ".quota-ram",
+            ).value,
+          );
+
+        const cpu =
+          Number(
+            card.querySelector(
+              ".quota-cpu",
+            ).value,
+          );
+
+        const diskGiB =
+          Number(
+            card.querySelector(
+              ".quota-disk",
+            ).value,
+          );
+
+
+        if (
+          !Number.isFinite(
+            ramGiB,
+          )
+          ||
+          !Number.isInteger(
+            cpu,
+          )
+          ||
+          !Number.isFinite(
+            diskGiB,
+          )
+          ||
+          ramGiB < 0
+          ||
+          cpu < 0
+          ||
+          diskGiB < 0
+        ) {
+          showError(
+            "Enter valid non-negative quota values.",
+          );
+
+          return;
+        }
+
+
+        try {
+
+          await updateUserQuota(
+            userId,
+            {
+              quota_ram_bytes:
+                gibToBytes(
+                  ramGiB,
+                ),
+
+              quota_cpu_cores:
+                cpu,
+
+              quota_disk_bytes:
+                gibToBytes(
+                  diskGiB,
+                ),
+            },
+            csrfToken,
+          );
+
+          showSuccess(
+            "User quota updated.",
+          );
+
+          await loadUsers();
+
+        } catch (error) {
+
+          showError(
+            error?.message ||
+            "Unable to update quota.",
+          );
+        }
+      }
+
+
+      async function revokeAccount(
+        card,
+        userId,
+      ) {
+
+        clearMessages();
+
+
+        const name =
+          card.querySelector(
+            ".user-name",
+          )
+            ?.textContent
+            ?.trim()
+          || "this user";
+
+
+        const confirmed =
+          window.confirm(
+            `Revoke ${name}?\n\n` +
+            "All active sessions for this " +
+            "account will be invalidated.",
+          );
+
+
+        if (!confirmed) {
+          return;
+        }
+
+
+        try {
+
+          await revokeUser(
+            userId,
+            csrfToken,
+          );
+
+          showSuccess(
+            "User revoked and active sessions invalidated.",
+          );
+
+          await loadUsers();
+
+        } catch (error) {
+
+          showError(
+            error?.message ||
+            "Unable to revoke user.",
+          );
+        }
+      }
+
+
+      async function loadUsers() {
+
+        if (loading) {
+          return;
+        }
+
+        loading =
+          true;
+
+        refreshButton.disabled =
+          true;
+
+        loadState.textContent =
+          "Loading";
+
+
+        try {
+
+          const response =
+            await getAdminUsers();
+
+          const users =
+            response?.users ||
+            [];
+
+          renderUsers(
+            users,
+          );
+
+          loadState.textContent =
+            "Loaded";
+
+        } catch (error) {
+
+          usersContainer.innerHTML = `
+            <div class="empty">
+              Unable to load users.
+            </div>
+          `;
+
+          showError(
+            error?.message ||
+            "Unable to load users.",
+          );
+
+          loadState.textContent =
+            "Error";
+
+        } finally {
+
+          loading =
+            false;
+
+          refreshButton.disabled =
+            false;
+        }
+      }
+
+
+      async function initialize() {
+
+        clearMessages();
+
+
+        try {
+
+          const response =
+            await getCurrentUser();
+
+          const user =
+            response.user ||
+            response;
+
+
+          if (
+            user.role !==
+            "admin"
+          ) {
+            throw new ApiError(
+              "Administrator access is required.",
+              403,
+            );
+          }
+
+
+          currentUserId =
+            user.id ||
+            user.user_id;
+
+
+          csrfToken =
+            response.csrf_token ||
+            user.csrf_token ||
+            null;
+
+
+          account.innerHTML = `
+            <strong>
+              ${
+                escapeHtml(
+                  user.name ||
+                  user.email,
+                )
+              }
+            </strong>
+
+            <span>
+              Admin
+            </span>
+          `;
+
+
+          if (!csrfToken) {
+            throw new Error(
+              "Authenticated CSRF token is unavailable.",
+            );
+          }
+
+
+          await loadUsers();
+
+        } catch (error) {
+
+          usersContainer.innerHTML = `
+            <div class="empty">
+              User management unavailable.
+            </div>
+          `;
+
+
+          if (
+            error instanceof
+              ApiError
+            &&
+            error.status === 403
+          ) {
+            showError(
+              "Administrator access is required.",
+            );
+
+            return;
+          }
+
+
+          if (
+            error instanceof
+              ApiError
+            &&
+            error.status === 401
+          ) {
+            showError(
+              "Your session has expired or you are not signed in.",
+            );
+
+            return;
+          }
+
+
+          showError(
+            error?.message ||
+            "Unable to initialize user management.",
+          );
+        }
+      }
+
+
+      refreshButton.addEventListener(
+        "click",
+        loadUsers,
+      );
+
+
+      initialize();
+
+    </script>
+
+  </body>
+
+</html>
+
+
+<style is:global>
+
+  :root {
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      sans-serif;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #080d16;
+  }
+
+
+  * {
+    box-sizing:
+      border-box;
+  }
+
+
+  body {
+    margin:
+      0;
+
+    min-height:
+      100vh;
+
+    background:
+      #080d16;
+  }
+
+
+  button,
+  input,
+  select {
+    font:
+      inherit;
+  }
+
+
+  .layout {
+    display:
+      grid;
+
+    grid-template-columns:
+      250px
+      minmax(0, 1fr);
+
+    min-height:
+      100vh;
+  }
+
+
+  .sidebar {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      36px;
+
+    padding:
+      28px 22px;
+
+    border-right:
+      1px solid #1f2937;
+
+    background:
+      #0d1420;
+  }
+
+
+  .sidebar h1 {
+    margin:
+      7px 0 0;
+
+    font-size:
+      20px;
+  }
+
+
+  .eyebrow {
+    color:
+      #7dd3fc;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  nav {
+    flex:
+      1;
+  }
+
+
+  .nav-item {
+    display:
+      block;
+
+    padding:
+      11px 12px;
+
+    border-radius:
+      8px;
+
+    color:
+      #9ca3af;
+
+    text-decoration:
+      none;
+  }
+
+
+  .nav-item.active {
+    color:
+      #f9fafb;
+
+    background:
+      #172033;
+  }
+
+
+  .account {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      4px;
+
+    padding-top:
+      18px;
+
+    border-top:
+      1px solid #1f2937;
+  }
+
+
+  .account span {
+    color:
+      #9ca3af;
+
+    font-size:
+      13px;
+  }
+
+
+  main {
+    padding:
+      30px;
+
+    min-width:
+      0;
+  }
+
+
+  .page-header {
+    display:
+      flex;
+
+    justify-content:
+      space-between;
+
+    align-items:
+      flex-start;
+
+    gap:
+      20px;
+  }
+
+
+  .page-header h2 {
+    margin:
+      5px 0;
+  }
+
+
+  .page-header p,
+  .panel-heading p {
+    margin:
+      0;
+
+    color:
+      #94a3b8;
+  }
+
+
+  button {
+    border:
+      1px solid #334155;
+
+    border-radius:
+      7px;
+
+    padding:
+      8px 12px;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #22304a;
+
+    cursor:
+      pointer;
+  }
+
+
+  button.secondary {
+    background:
+      #111827;
+  }
+
+
+  button.danger {
+    border-color:
+      #7f1d1d;
+
+    color:
+      #fecaca;
+
+    background:
+      #2b1217;
+  }
+
+
+  button:disabled {
+    cursor:
+      not-allowed;
+
+    opacity:
+      0.45;
+  }
+
+
+  .message {
+    margin-top:
+      18px;
+
+    padding:
+      12px 14px;
+
+    border-radius:
+      8px;
+  }
+
+
+  .message.error {
+    border:
+      1px solid #7f1d1d;
+
+    color:
+      #fecaca;
+
+    background:
+      #2b1217;
+  }
+
+
+  .message.success {
+    border:
+      1px solid #14532d;
+
+    color:
+      #bbf7d0;
+
+    background:
+      #102c27;
+  }
+
+
+  .hidden {
+    display:
+      none;
+  }
+
+
+  .summary-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      14px;
+
+    margin-top:
+      26px;
+  }
+
+
+  .summary-grid article,
+  .panel,
+  .user-card {
+    border:
+      1px solid #1f2937;
+
+    border-radius:
+      11px;
+
+    background:
+      #101826;
+  }
+
+
+  .summary-grid article {
+    padding:
+      17px;
+  }
+
+
+  .summary-grid span {
+    color:
+      #94a3b8;
+
+    font-size:
+      12px;
+  }
+
+
+  .summary-grid strong {
+    display:
+      block;
+
+    margin-top:
+      8px;
+
+    font-size:
+      22px;
+  }
+
+
+  .panel {
+    margin-top:
+      22px;
+
+    padding:
+      20px;
+  }
+
+
+  .panel-heading {
+    display:
+      flex;
+
+    justify-content:
+      space-between;
+
+    align-items:
+      flex-start;
+
+    gap:
+      15px;
+  }
+
+
+  .panel-heading h3 {
+    margin:
+      0 0 5px;
+  }
+
+
+  .load-state {
+    padding:
+      5px 9px;
+
+    border-radius:
+      999px;
+
+    color:
+      #bae6fd;
+
+    background:
+      #172033;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+  }
+
+
+  .users {
+    display:
+      grid;
+
+    gap:
+      16px;
+
+    margin-top:
+      18px;
+  }
+
+
+  .user-card {
+    padding:
+      18px;
+  }
+
+
+  .user-top,
+  .actions {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    gap:
+      12px;
+  }
+
+
+  .user-name {
+    font-size:
+      17px;
+
+    font-weight:
+      700;
+  }
+
+
+  .you {
+    margin-left:
+      5px;
+
+    padding:
+      3px 6px;
+
+    border-radius:
+      999px;
+
+    color:
+      #bae6fd;
+
+    background:
+      #172033;
+
+    font-size:
+      9px;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  .email {
+    margin-top:
+      4px;
+
+    color:
+      #94a3b8;
+
+    font-size:
+      12px;
+  }
+
+
+  .status {
+    padding:
+      5px 8px;
+
+    border-radius:
+      999px;
+
+    font-size:
+      10px;
+
+    font-weight:
+      700;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  .status.active {
+    color:
+      #6ee7b7;
+
+    background:
+      #102c27;
+  }
+
+
+  .status.invited {
+    color:
+      #fde68a;
+
+    background:
+      #302a17;
+  }
+
+
+  .status.revoked {
+    color:
+      #fca5a5;
+
+    background:
+      #332421;
+  }
+
+
+  .counts {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      10px;
+
+    margin-top:
+      16px;
+  }
+
+
+  .counts > div {
+    padding:
+      10px;
+
+    border-radius:
+      7px;
+
+    background:
+      #0b111c;
+  }
+
+
+  .counts span {
+    color:
+      #64748b;
+
+    font-size:
+      11px;
+  }
+
+
+  .counts strong {
+    display:
+      block;
+
+    margin-top:
+      3px;
+  }
+
+
+  .usage {
+    margin-top:
+      18px;
+  }
+
+
+  .usage-row {
+    margin-top:
+      11px;
+  }
+
+
+  .usage-heading {
+    display:
+      flex;
+
+    justify-content:
+      space-between;
+
+    gap:
+      12px;
+
+    color:
+      #94a3b8;
+
+    font-size:
+      11px;
+  }
+
+
+  .progress {
+    height:
+      6px;
+
+    margin-top:
+      5px;
+
+    overflow:
+      hidden;
+
+    border-radius:
+      999px;
+
+    background:
+      #1e293b;
+  }
+
+
+  .progress span {
+    display:
+      block;
+
+    height:
+      100%;
+
+    border-radius:
+      inherit;
+
+    background:
+      #7dd3fc;
+  }
+
+
+  .editor-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(0, 1fr)
+      );
+
+    gap:
+      12px;
+
+    margin-top:
+      18px;
+  }
+
+
+  label {
+    color:
+      #94a3b8;
+
+    font-size:
+      11px;
+  }
+
+
+  input,
+  select {
+    width:
+      100%;
+
+    margin-top:
+      6px;
+
+    border:
+      1px solid #334155;
+
+    border-radius:
+      7px;
+
+    padding:
+      8px;
+
+    outline:
+      none;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #080d16;
+  }
+
+
+  input:focus,
+  select:focus {
+    border-color:
+      #7dd3fc;
+  }
+
+
+  .actions {
+    justify-content:
+      flex-end;
+
+    margin-top:
+      17px;
+  }
+
+
+  .empty {
+    padding:
+      34px;
+
+    text-align:
+      center;
+
+    color:
+      #64748b;
+  }
+
+
+  @media (
+    max-width:
+      950px
+  ) {
+
+    .layout {
+      grid-template-columns:
+        1fr;
+    }
+
+
+    .sidebar {
+      display:
+        none;
+    }
+
+
+    .summary-grid,
+    .editor-grid {
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0, 1fr)
+        );
+    }
+
+  }
+
+
+  @media (
+    max-width:
+      600px
+  ) {
+
+    main {
+      padding:
+        18px;
+    }
+
+
+    .page-header,
+    .user-top,
+    .actions {
+      align-items:
+        stretch;
+
+      flex-direction:
+        column;
+    }
+
+
+    .summary-grid,
+    .editor-grid,
+    .counts {
+      grid-template-columns:
+        1fr;
+    }
+
+
+    .actions button {
+      width:
+        100%;
+    }
+
+  }
+
+</style>

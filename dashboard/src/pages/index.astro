@@ -45,6 +45,14 @@ const title =
           >
             Overview
           </a>
+
+		  <a
+			id="admin-users-link"
+			href="/admin/users"
+			class="nav-item hidden"
+		  >
+			Users
+		  </a>
         </nav>
 
         <div
@@ -196,6 +204,11 @@ const title =
         document.querySelector(
           "#account",
         );
+
+	  const adminUsersLink =
+		document.querySelector(
+			"#admin-users-link",
+		);
 
       const connectionStatus =
         document.querySelector(
@@ -601,6 +614,15 @@ const title =
             userResponse.user ||
             userResponse;
 
+		  if (
+			user.role === "admin"
+		  ) {
+			adminUsersLink
+				?.classList
+				.remove(
+		          "hidden",
+				);
+			}
 
           account.innerHTML = `
             <strong>
@@ -808,10 +830,6 @@ const title =
         loadDashboard,
       );
 
-
-      loadDashboard();
-
-
       /*
        * UI polling is independent of
        * metrics collection.
@@ -891,9 +909,7 @@ const title =
 		stopPolling,
 		);
 
-
-		loadPage();
-
+		loadDashboard();
 
 		if (
 		document.visibilityState

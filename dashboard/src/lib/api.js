@@ -164,3 +164,112 @@ export function executeContainerCommand(
     },
   );
 }
+
+export function getAdminUsers() {
+  return apiRequest(
+    "/api/admin/users",
+  );
+}
+
+
+export function getAdminUser(
+  userId,
+) {
+  return apiRequest(
+    `/api/admin/users/${
+      encodeURIComponent(
+        userId,
+      )
+    }`,
+  );
+}
+
+
+export function updateUserRole(
+  userId,
+  role,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/users/${
+      encodeURIComponent(
+        userId,
+      )
+    }/role`,
+    {
+      method:
+        "PATCH",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+
+        "X-CSRF-Token":
+          csrfToken,
+      },
+
+      body:
+        JSON.stringify({
+          role,
+        }),
+    },
+  );
+}
+
+
+export function revokeUser(
+  userId,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/users/${
+      encodeURIComponent(
+        userId,
+      )
+    }/revoke`,
+    {
+      method:
+        "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+
+        "X-CSRF-Token":
+          csrfToken,
+      },
+    },
+  );
+}
+
+
+export function updateUserQuota(
+  userId,
+  quota,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/users/${
+      encodeURIComponent(
+        userId,
+      )
+    }/quota`,
+    {
+      method:
+        "PUT",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+
+        "X-CSRF-Token":
+          csrfToken,
+      },
+
+      body:
+        JSON.stringify(
+          quota,
+        ),
+    },
+  );
+}

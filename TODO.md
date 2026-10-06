@@ -216,9 +216,9 @@ A task is complete only when its implementation has been verified.
 - [x] Configure API access.
 - [x] Implement the shared page layout.
 - [ ] Implement the Google login page.
-- [ ] Implement authenticated navigation.
+- [x] Implement authenticated navigation.
 - [ ] Implement logout.
-- [ ] Implement role-specific navigation.
+- [x] Implement role-specific navigation.
 - [x] Implement the Admin overview.
 - [ ] Implement the Container User overview.
 - [x] Implement the container list and status indicators.
@@ -243,11 +243,11 @@ A task is complete only when its implementation has been verified.
 - [ ] Prevent disk-limit reduction in the initial resource-update policy.
 - [ ] Implement deletion confirmation.
 - [ ] Implement user invitations.
-- [ ] Implement user listing and role management.
-- [ ] Implement quota management.
+- [x] Implement user listing and role management.
+- [x] Implement quota management.
 - [ ] Implement container assignments.
 - [x] Implement ownership transfers.
-- [ ] Display user allocations against quotas.
+- [x] Display user allocations against quotas.
 - [ ] Display host allocation summaries.
 - [x] Implement the command terminal interface.
 - [x] Display command output and exit status.

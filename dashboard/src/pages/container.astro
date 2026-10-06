@@ -56,6 +56,13 @@ const title =
           >
             Container details
           </a>
+          <a
+            id="admin-users-link"
+            href="/admin/users"
+            class="nav-item hidden"
+          >
+            Users
+          </a>
         </nav>
 
         <div
@@ -230,7 +237,7 @@ const title =
         </section>
 
         <TerminalPanel />
-        
+
         <section class="history-section">
 
           <div class="section-header">
@@ -1190,22 +1197,39 @@ const title =
             userResponse.user ||
             userResponse;
 
-          account.innerHTML = `
-            <strong>
-              ${
-                user.name ||
-                user.email ||
-                "User"
-              }
-            </strong>
+          if (
+            user.role === "admin"
+          ) {
+            document
+              .querySelector(
+                "#admin-users-link",
+              )
+              ?.classList
+              .remove(
+                "hidden",
+              );
+          }
 
-            <span>
-              ${
-                user.role ||
-                ""
-              }
-            </span>
-          `;
+          account.replaceChildren();
+
+          const nameElement =
+            document.createElement("strong");
+
+          nameElement.textContent =
+            user.name ||
+            user.email ||
+            "User";
+
+          const roleElement =
+            document.createElement("span");
+
+          roleElement.textContent =
+            user.role || "";
+
+          account.append(
+            nameElement,
+            roleElement,
+          );
 
           await Promise.all([
             loadLatest(),
@@ -1351,34 +1375,6 @@ const title =
         schedulePolling();
       }
 
-
-      document.addEventListener(
-        "visibilitychange",
-        () => {
-
-          if (
-            document.visibilityState
-            === "visible"
-          ) {
-            loadLatest();
-
-            startPolling();
-          } else {
-            stopPolling();
-          }
-        },
-      );
-
-
-      loadPage();
-
-
-      if (
-        document.visibilityState
-        === "visible"
-      ) {
-        startPolling();
-      }
     </script>
 
   </body>
