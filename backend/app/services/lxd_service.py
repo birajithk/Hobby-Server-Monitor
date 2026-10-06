@@ -1,5 +1,8 @@
 
 import pylxd
+import re
+
+from app.config import get_terminal_container_user
 
 class BoundedOutputBuffer:
     """
@@ -157,6 +160,73 @@ class LXDService:
             name
         )
 
+    def provision_terminal_identity(self, instance):
+        """Provision a restricted, non-root terminal account."""
+
+        username = get_terminal_container_user()
+
+        if (
+            not re.fullmatch(
+                r"[a-z_][a-z0-9_-]{0,31}",
+                username,
+            )
+            or username == "root"
+        ):
+            raise ValueError(
+                "Invalid restricted terminal username."
+            )
+
+        existing = instance.execute([
+            "/usr/bin/getent",
+            "passwd",
+            username,
+        ])
+
+        if existing.exit_code != 0:
+            created = instance.execute([
+                "/usr/sbin/useradd",
+                "--create-home",
+                "--user-group",
+                "--shell",
+                "/bin/sh",
+                username,
+            ])
+
+            if created.exit_code != 0:
+                raise RuntimeError(
+                    "Restricted terminal account creation failed."
+                )
+
+        identity = self.resolve_terminal_identity(
+            instance.name,
+            username,
+        )
+
+        if (
+            identity is None
+            or identity["uid"] < 1000
+            or identity["cwd"] != f"/home/{username}"
+        ):
+            raise RuntimeError(
+                "Restricted terminal identity verification failed."
+            )
+
+        groups = instance.execute([
+            "/usr/bin/id",
+            "-nG",
+            username,
+        ])
+
+        if (
+            groups.exit_code != 0
+            or set(groups.stdout.split()) != {username}
+        ):
+            raise RuntimeError(
+                "Restricted terminal account has unexpected groups."
+            )
+
+        return identity
+
     def create_container(
         self,
         *,
@@ -252,9 +322,20 @@ class LXDService:
             wait=True,
         )
 
-        instance.start(
-            wait=True
-        )
+        try:
+            instance.start(wait=True)
+
+            self.provision_terminal_identity(instance)
+
+        except Exception:
+            try:
+                self.delete_container(name)
+            except Exception:
+                # A failed cleanup leaves an unmanaged
+                # instance for Admin reconciliation.
+                pass
+
+            raise
 
         return instance
 

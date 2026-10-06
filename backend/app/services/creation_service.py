@@ -254,6 +254,16 @@ class ContainerCreationService:
                     title="LXD unavailable",
                 )
 
+            except (RuntimeError, ValueError) as error:
+                raise falcon.HTTPServiceUnavailable(
+                    title="Container provisioning failed",
+                    description=(
+                        "The restricted terminal account "
+                        "could not be initialized. "
+                        "Check LXD for an unmanaged instance."
+                    ),
+                ) from error
+
             # Obtain a fresh host snapshot while
             # holding the allocation lock.
             report = (
