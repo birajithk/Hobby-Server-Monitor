@@ -127,3 +127,18 @@ html.hsm-sidebar-closed #hsm-sidebar-toggle {
     min-width: 0;
   }
 }
+
+/*
+ * Reserve space for the sidebar toggle
+ * when the sidebar is collapsed.
+ */
+html.hsm-sidebar-closed body .layout > main {
+  padding-top: 72px;
+}
+
+/*
+ * Keep the toggle visible above content.
+ */
+#hsm-sidebar-toggle {
+  z-index: 110;
+}

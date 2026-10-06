@@ -97,19 +97,15 @@ const title =
                   Container
                 </div>
 
-                <h2
-                  id="container-name"
-                >
-                  Loading...
+                <h2 class="container-heading">
+                  <select
+                    id="container-switch"
+                    aria-label="Switch container"
+                    disabled
+                  >
+                    <option value="">Loading container...</option>
+                  </select>
                 </h2>
-              </div>
-
-              <div class="container-switcher">
-                <label for="container-switch">Switch container</label>
-
-                <select id="container-switch" disabled>
-                  <option value="">Loading containers...</option>
-                </select>
               </div>
 
               <span
@@ -416,11 +412,6 @@ const title =
       const errorMessage =
         document.querySelector(
           "#error-message",
-        );
-
-      const containerName =
-        document.querySelector(
-          "#container-name",
         );
 
       const containerStatus =
@@ -908,9 +899,23 @@ const title =
           metric?.fields || {};
 
 
-        containerName.textContent =
-          response?.container?.name ||
-          "Container";
+        const currentName =
+          response?.container?.name || "Container";
+
+        const switcher =
+          document.querySelector("#container-switch");
+
+        const selectedOption = Array.from(
+          switcher.options,
+        ).find((option) => option.value === containerId);
+
+        if (selectedOption) {
+          selectedOption.textContent = currentName;
+        } else if (!switcher.value && containerId) {
+          switcher.replaceChildren(
+            new Option(currentName, containerId),
+          );
+        }
 
 
         const status =
@@ -1249,6 +1254,12 @@ const title =
           await Promise.all([
             loadLatest(),
             loadHistory(),
+            loadContainerSwitcher().catch((error) => {
+              console.error(
+                "Unable to load container switcher:",
+                error,
+              );
+            }),
           ]);
 
         } catch (error) {
@@ -1264,9 +1275,6 @@ const title =
 
             return;
           }
-          loadContainerSwitcher().catch((error) => {
-            console.error("Unable to load container switcher:", error);
-          });
 
           showError(
             error?.message ||
@@ -1447,7 +1455,8 @@ const title =
       }
 
       async function loadContainerSwitcher() {
-        const select = document.querySelector("#container-switch");
+        const select =
+          document.querySelector("#container-switch");
 
         const response = await getContainers();
 
@@ -1463,6 +1472,19 @@ const title =
             item.is_managed !== false
         );
 
+        const currentLabel =
+          select.selectedOptions[0]?.textContent || "Container";
+
+        if (
+          containerId &&
+          !containers.some((item) => item.id === containerId)
+        ) {
+          containers.unshift({
+            id: containerId,
+            name: currentLabel,
+          });
+        }
+
         select.replaceChildren();
 
         for (const container of containers) {
@@ -1476,18 +1498,21 @@ const title =
           );
         }
 
-        if (containers.some((item) => item.id === containerId)) {
+        if (containerId) {
           select.value = containerId;
         }
 
         select.disabled = containers.length < 2;
 
-        select.addEventListener("change", () => {
-          if (!select.value) return;
+        select.onchange = () => {
+          if (!select.value || select.value === containerId) {
+            return;
+          }
 
-          window.location.href =
-            `/container?id=${encodeURIComponent(select.value)}`;
-        });
+          window.location.assign(
+            `/container?id=${encodeURIComponent(select.value)}`,
+          );
+        };
       }
 
       openContainerPage();
@@ -2226,4 +2251,44 @@ const title =
     opacity: 0.7;
   }
 
+  .container-heading {
+    margin: 5px 0 0;
+    max-width: 100%;
+  }
+
+  .container-heading select {
+    appearance: auto;
+    max-width: 100%;
+    min-width: 190px;
+    padding: 3px 8px 3px 0;
+
+    background: transparent;
+    color: #e5e7eb;
+
+    border: none;
+    border-bottom: 1px dashed #334155;
+
+    font: inherit;
+    font-size: 28px;
+    font-weight: 700;
+
+    cursor: pointer;
+  }
+
+  .container-heading select:focus-visible {
+    outline: 2px solid #7dd3fc;
+    outline-offset: 4px;
+  }
+
+  .container-heading select:disabled {
+    opacity: 1;
+    cursor: default;
+  }
+
+  .container-heading select option {
+    background: #101826;
+    color: #e5e7eb;
+    font-size: 15px;
+    font-weight: 400;
+  }
 </style>

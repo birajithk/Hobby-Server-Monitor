@@ -201,7 +201,7 @@ class OAuthTests(unittest.TestCase):
 
         self.assertEqual(
             response.headers["location"],
-            "/api/me",
+            "/",
         )
 
         with get_connection() as connection:
