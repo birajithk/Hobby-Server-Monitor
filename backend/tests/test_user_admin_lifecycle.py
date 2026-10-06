@@ -547,6 +547,54 @@ class UserAdminLifecycleTests(
                     },
                 )
 
+    def test_reactivate_revoked_google_user(self):
+        with get_connection() as connection:
+            connection.execute(
+                "UPDATE users SET google_sub = ? WHERE id = ?",
+                ("verified-google-sub-1", "user-1"),
+            )
+
+        old_session = self.sessions.create_session("user-1")
+
+        self.service.revoke_user(self.admin, "user-1")
+
+        self.assertIsNone(
+            self.sessions.get_session(old_session)
+        )
+
+        result = self.service.reactivate_user(
+            self.admin,
+            "user-1",
+        )
+
+        self.assertEqual(result["user"]["status"], "active")
+        self.assertEqual(result["user"]["role"], "container_user")
+
+        # Reactivation never restores an invalidated session.
+        self.assertIsNone(
+            self.sessions.get_session(old_session)
+        )
+
+
+    def test_reactivate_user_without_google_binding(self):
+        self.service.revoke_user(self.admin, "user-1")
+
+        result = self.service.reactivate_user(
+            self.admin,
+            "user-1",
+        )
+
+        self.assertEqual(result["user"]["status"], "invited")
+
+
+    def test_nonadmin_cannot_reactivate_user(self):
+        self.service.revoke_user(self.admin, "user-1")
+
+        with self.assertRaises(falcon.HTTPForbidden):
+            self.service.reactivate_user(
+                self.user,
+                "user-1",
+            )
 
 if __name__ == "__main__":
     unittest.main()

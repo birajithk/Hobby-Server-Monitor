@@ -375,7 +375,14 @@ class GoogleCallbackResource:
             flow["nonce_hash"],
         )
 
-        user_id = get_or_create_user(claims)
+        try:
+            user_id = get_or_create_user(claims)
+
+        except falcon.HTTPForbidden:
+            resp.set_header("Cache-Control", "no-store")
+            resp.status = falcon.HTTP_302
+            resp.location = "/login?error=access_denied"
+            return
 
         session_token = self.sessions.create_session(
             user_id

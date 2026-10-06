@@ -38,6 +38,14 @@ const title = "Sign in — Hobby Server Monitor";
               error?.message || "Unable to check login status.";
           }
         });
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get("error") === "access_denied") {
+          document.querySelector("#login-message").textContent =
+            "This Google account does not have access. " +
+            "Contact an administrator to request access.";
+        }
     </script>
 
     <style>
