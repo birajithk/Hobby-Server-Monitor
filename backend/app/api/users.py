@@ -183,3 +183,19 @@ class UserQuotaAdminResource:
                 payload,
             )
         )
+
+class UserReactivateAdminResource:
+    """Admin-only restoration of revoked Container Users."""
+
+    required_role = "admin"
+
+    def __init__(self, service=None):
+        self.service = service or UserAdminService()
+
+    def on_post(self, req, resp, user_id):
+        resp.media = self.service.reactivate_user(
+            req.context.user,
+            user_id,
+        )
+
+        resp.set_header("Cache-Control", "no-store")

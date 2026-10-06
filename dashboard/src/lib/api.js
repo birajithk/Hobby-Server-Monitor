@@ -396,3 +396,15 @@ export function inviteUser(payload, csrfToken) {
     body: JSON.stringify(payload),
   });
 }
+
+export function reactivateUser(userId, csrfToken) {
+  return apiRequest(
+    `/api/admin/users/${encodeURIComponent(userId)}/reactivate`,
+    {
+      method: "POST",
+      headers: {
+        "X-CSRF-Token": csrfToken,
+      },
+    },
+  );
+}

@@ -44,6 +44,7 @@ from app.api.users import (
     UserRevokeAdminResource,
     UserRoleAdminResource,
     UsersAdminResource,
+    UserReactivateAdminResource,
 )
 from app.services.adoption_service import (
     AdoptionService,
@@ -250,6 +251,11 @@ def create_app(
     application.add_route(
         "/api/me/quota",
         MyQuotaResource(),
+    )
+
+    application.add_route(
+        "/api/admin/users/{user_id}/reactivate",
+        UserReactivateAdminResource(),
     )
 
     allocations = (

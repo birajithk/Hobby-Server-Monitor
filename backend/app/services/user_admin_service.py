@@ -605,6 +605,96 @@ class UserAdminService:
                         sessions_revoked,
                 }
 
+    def reactivate_user(self, actor, user_id):
+        """Restore a revoked Container User without restoring old grants."""
+
+        require_admin(actor)
+
+        with allocation_lock():
+            with get_connection() as connection:
+                connection.execute("BEGIN IMMEDIATE")
+
+                target = self._get_user_row(connection, user_id)
+
+                if target["status"] != "revoked":
+                    raise falcon.HTTPConflict(
+                        title="User is not revoked",
+                    )
+
+                # Do not silently restore administrative privileges.
+                if target["role"] != "container_user":
+                    raise falcon.HTTPConflict(
+                        title="Admin reactivation requires review",
+                    )
+
+                owned = connection.execute(
+                    """
+                    SELECT COUNT(*) AS count
+                    FROM containers
+                    WHERE owner_id = ?
+                    """,
+                    (user_id,),
+                ).fetchone()["count"]
+
+                if owned:
+                    raise falcon.HTTPConflict(
+                        title="User still owns containers",
+                        description=(
+                            "Transfer container ownership before "
+                            "reactivating this account."
+                        ),
+                    )
+
+                # Previous grants must not return automatically.
+                cursor = connection.execute(
+                    "DELETE FROM container_access WHERE user_id = ?",
+                    (user_id,),
+                )
+
+                removed_grants = cursor.rowcount
+
+                # Previously signed-in Google accounts already have
+                # a verified, bound Google subject.
+                # Never-signed-in accounts must complete first login.
+                new_status = (
+                    "active"
+                    if target["google_sub"] is not None
+                    else "invited"
+                )
+
+                now = utc_now()
+
+                connection.execute(
+                    """
+                    UPDATE users
+                    SET status = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (new_status, now, user_id),
+                )
+
+                # Do not create a session. The user must sign in
+                # through Google again.
+                self._audit(
+                    connection,
+                    actor=actor,
+                    action="user.reactivate",
+                    target_id=user_id,
+                    details={
+                        "previous_status": "revoked",
+                        "new_status": new_status,
+                        "access_assignments_removed": removed_grants,
+                    },
+                    created_at=now,
+                )
+
+                updated = self._get_user_row(connection, user_id)
+
+                return {
+                    "user": self._serialize_user(connection, updated),
+                    "access_assignments_removed": removed_grants,
+                }
+
     def delete_user(
         self,
         actor,

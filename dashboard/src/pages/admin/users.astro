@@ -234,6 +234,7 @@ const title =
         getAdminUsers,
         getCurrentUser,
         revokeUser,
+        reactivateUser,
         updateUserQuota,
         updateUserRole,
         getAdminHost,
@@ -942,6 +943,21 @@ const title =
                       }
                     </button>
 
+                    ${
+                      user.status === "revoked" &&
+                      user.role === "container_user"
+                        ? `
+                          <button
+                            type="button"
+                            class="reactivate-user-btn"
+                            data-reactivate-id="${escapeHtml(user.id)}"
+                          >
+                            Reactivate
+                          </button>
+                        `
+                        : ""
+                    }
+
                   </div>
 
                 </article>
@@ -1406,6 +1422,53 @@ const title =
         loadUsers,
       );
 
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest(
+          ".reactivate-user-btn",
+        );
+
+        if (!button || button.disabled) {
+          return;
+        }
+
+        const userId = button.dataset.reactivateId;
+
+        const confirmed = window.confirm(
+          "Reactivate this account?\n\n" +
+          "The user must sign in again using Google.\n" +
+          "Previous container access will not be restored automatically.",
+        );
+
+        if (!confirmed) {
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Reactivating...";
+
+        try {
+          const session = await getCurrentUser();
+
+          const result = await reactivateUser(
+            userId,
+            session.csrf_token,
+          );
+
+          window.alert(
+            `User reactivated. New status: ${result.user.status}`,
+          );
+
+          window.location.reload();
+        } catch (error) {
+          window.alert(
+            error?.message || "Failed to reactivate user.",
+          );
+
+          button.disabled = false;
+          button.textContent = "Reactivate";
+        }
+      });
 
       initialize();
 
