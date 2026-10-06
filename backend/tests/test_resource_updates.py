@@ -213,6 +213,59 @@ class ResourceUpdateTests(unittest.TestCase):
                 3 * GIB,
         }
 
+    def test_admin_can_read_saved_limits(self):
+        result = self.service.get_current_limits(
+            self.actor,
+            "container-1",
+        )
+
+        self.assertEqual(
+            result["ram_limit_bytes"],
+            512 * MIB,
+        )
+
+        self.assertEqual(
+            result["cpu_limit_cores"],
+            1,
+        )
+
+        self.assertEqual(
+            result["cpu_allowance_percent"],
+            50,
+        )
+
+        self.assertEqual(
+            result["disk_limit_bytes"],
+            2 * GIB,
+        )
+
+        self.assertEqual(
+            result["storage_pool"],
+            "hsm-zfs",
+        )
+
+        self.lxd.update_container_resources.assert_not_called()
+
+    def test_non_admin_cannot_read_saved_limits(self):
+        user = {
+            "id": "admin-1",
+            "email": "admin@example.com",
+            "role": "container_user",
+        }
+
+        with self.assertRaises(falcon.HTTPForbidden):
+            self.service.get_current_limits(
+                user,
+                "container-1",
+            )
+
+    def test_unknown_container_limits_return_404(self):
+        with self.assertRaises(falcon.HTTPNotFound):
+            self.service.get_current_limits(
+                self.actor,
+                "missing-container",
+            )
+
     def test_valid_update_succeeds(self):
 
         result = self.service.update(

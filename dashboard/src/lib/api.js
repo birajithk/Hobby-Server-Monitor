@@ -342,6 +342,30 @@ export function getAdminAllocations() {
   return apiRequest("/api/admin/allocations");
 }
 
+export function getContainerResourceLimits(containerId) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/resources`,
+  );
+}
+
+export function updateContainerResourceLimits(
+  containerId,
+  limits,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/resources`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify(limits),
+    },
+  );
+}
+
 export function createManagedContainer(payload, csrfToken) {
   return apiRequest("/api/admin/containers", {
     method: "POST",

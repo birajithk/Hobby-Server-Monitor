@@ -55,6 +55,53 @@ const title = "Container Management — Hobby Server Monitor";
         <div id="notice" class="message hidden" role="status"
           aria-live="polite"></div>
 
+        <section class="panel" id="host-allocation-panel">
+          <h3>Host allocation overview</h3>
+
+          <p class="muted">
+            Host capacity, reserved resources and committed
+            allocations. Stopped managed containers still count.
+          </p>
+
+          <div class="grid">
+            <div class="allocation-card">
+              <h4>RAM</h4>
+              <div id="allocation-ram">Loading...</div>
+            </div>
+
+            <div class="allocation-card">
+              <h4>CPU</h4>
+              <div id="allocation-cpu">Loading...</div>
+            </div>
+
+            <div class="allocation-card">
+              <h4>Containers</h4>
+              <div id="allocation-containers">Loading...</div>
+            </div>
+
+            <div class="allocation-card">
+              <h4>Allocation status</h4>
+              <div id="allocation-status">Loading...</div>
+            </div>
+          </div>
+
+          <h4>Storage pool allocations</h4>
+
+          <div id="allocation-storage">
+            Loading storage pools...
+          </div>
+
+          <h4>Allocation blockers</h4>
+
+          <ul id="allocation-blockers">
+            <li>Loading...</li>
+          </ul>
+
+          <button id="refresh-allocations-button" type="button">
+            Refresh allocation overview
+          </button>
+        </section>
+
         <section class="panel">
           <h3>Select managed container</h3>
 
@@ -122,6 +169,82 @@ const title = "Container Management — Hobby Server Monitor";
             Transfer ownership
           </button>
         </section>
+
+        <section class="panel" id="resource-panel">
+          <h3>Edit resource limits</h3>
+
+          <p class="muted">
+            Edit the selected managed container's allocated
+            resources. Disk limits can increase but cannot decrease.
+          </p>
+
+          <p id="resource-status" class="muted">
+            Select a container to load saved limits.
+          </p>
+
+          <form id="resource-form">
+            <div class="grid">
+              <div>
+                <label for="resource-ram">RAM (GiB)</label>
+                <input
+                  id="resource-ram"
+                  type="number"
+                  min="0.25"
+                  step="any"
+                  required
+                />
+              </div>
+
+              <div>
+                <label for="resource-cpu">CPU cores</label>
+                <input
+                  id="resource-cpu"
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label for="resource-allowance">
+                  CPU allowance (%)
+                </label>
+                <input
+                  id="resource-allowance"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label for="resource-disk">Disk (GiB)</label>
+                <input
+                  id="resource-disk"
+                  type="number"
+                  min="0.25"
+                  step="any"
+                  required
+                />
+              </div>
+            </div>
+
+            <p id="resource-owner-budget" class="muted"></p>
+            <p id="resource-host-budget" class="muted"></p>
+
+            <button
+              id="save-resource-button"
+              type="submit"
+              disabled
+            >
+              Save resource limits
+            </button>
+          </form>
+        </section>
+
         <section class="panel" id="lifecycle-panel">
           <h3>Container lifecycle</h3>
 
@@ -197,6 +320,10 @@ const title = "Container Management — Hobby Server Monitor";
         transferContainerOwner,
         performContainerAction,
         deleteManagedContainer,
+        getAdminHost,
+        getAdminAllocations,
+        getContainerResourceLimits,
+        updateContainerResourceLimits,
       } from "../../lib/api.js";
 
       const $ = (selector) => document.querySelector(selector);
@@ -215,6 +342,41 @@ const title = "Container Management — Hobby Server Monitor";
       let managedContainers = [];
       let currentAccess = null;
       let busy = false;
+
+      let resourceLimits = null;
+      let allocationReport = null;
+      let hostInformation = null;
+      let resourceLoading = false;
+
+      const GiB = 1024 ** 3;
+
+      const resourceForm = $("#resource-form");
+      const saveResourceButton = $("#save-resource-button");
+
+      function formatGiB(bytes) {
+        return `${(Number(bytes) / GiB).toFixed(2)} GiB`;
+      }
+
+      function remainingQuota(user, key) {
+        return Math.max(
+          0,
+          Number(user?.quota?.[key] || 0) -
+          Number(user?.allocation?.[key] || 0),
+        );
+      }
+
+      function resetResourceForm() {
+        resourceLimits = null;
+        resourceForm.reset();
+
+        $("#resource-status").textContent =
+          "Loading saved resource limits...";
+
+        $("#resource-owner-budget").textContent = "";
+        $("#resource-host-budget").textContent = "";
+
+        saveResourceButton.disabled = true;
+      }
 
       function showNotice(message, kind = "error") {
         notice.textContent = message;
@@ -284,6 +446,10 @@ const title = "Container Management — Hobby Server Monitor";
       }
 
       function syncButtons() {
+        $("#refresh-allocations-button").disabled = busy;
+        saveResourceButton.disabled =
+          busy || resourceLoading || !resourceLimits;
+
         containerSelect.disabled = busy || managedContainers.length === 0;
         refreshButton.disabled = busy;
 
@@ -400,6 +566,133 @@ const title = "Container Management — Hobby Server Monitor";
         syncButtons();
       }
 
+      async function loadResourceLimits() {
+        const containerId = containerSelect.value;
+
+        resetResourceForm();
+
+        if (!containerId) {
+          $("#resource-status").textContent =
+            "No managed container selected.";
+          return;
+        }
+
+        resourceLoading = true;
+        syncButtons();
+
+        try {
+          const result = await getContainerResourceLimits(
+            containerId,
+          );
+
+          if (containerSelect.value !== containerId) {
+            return;
+          }
+
+          resourceLimits = result;
+
+          $("#resource-ram").value =
+            String(result.ram_limit_bytes / GiB);
+
+          $("#resource-cpu").value =
+            String(result.cpu_limit_cores);
+
+          $("#resource-allowance").value =
+            String(result.cpu_allowance_percent);
+
+          $("#resource-disk").value =
+            String(result.disk_limit_bytes / GiB);
+
+          $("#resource-disk").min =
+            String(result.disk_limit_bytes / GiB);
+
+          $("#resource-status").textContent =
+            `Saved limits loaded for ${result.name}. ` +
+            `Storage pool: ${result.storage_pool}.`;
+
+          updateResourceBudget();
+        } catch (error) {
+          if (containerSelect.value === containerId) {
+            $("#resource-status").textContent =
+              error?.message || "Unable to load resource limits.";
+          }
+        } finally {
+          resourceLoading = false;
+          syncButtons();
+        }
+      }
+
+      function updateResourceBudget() {
+        if (!resourceLimits || !allocationReport) {
+          return;
+        }
+
+        const owner = allUsers.find(
+          (user) => user.id === resourceLimits.owner_id,
+        );
+
+        const pool = allocationReport.storage_pools?.find(
+          (item) => item.name === resourceLimits.storage_pool,
+        );
+
+        const ownerRam =
+          remainingQuota(owner, "ram_bytes") +
+          resourceLimits.ram_limit_bytes;
+
+        const ownerCpu =
+          remainingQuota(owner, "cpu_cores") +
+          resourceLimits.cpu_limit_cores;
+
+        const ownerDisk =
+          remainingQuota(owner, "disk_bytes") +
+          resourceLimits.disk_limit_bytes;
+
+        const hostRam =
+          Number(allocationReport.memory.allocatable_bytes) +
+          resourceLimits.ram_limit_bytes;
+
+        const hostCpu =
+          Number(allocationReport.cpu.allocatable_threads) +
+          resourceLimits.cpu_limit_cores;
+
+        const hostDisk =
+          Number(pool?.allocatable_bytes || 0) +
+          resourceLimits.disk_limit_bytes;
+
+        $("#resource-owner-budget").textContent =
+          `Owner maximum including current allocation: ` +
+          `RAM ${formatGiB(ownerRam)}, ` +
+          `CPU ${ownerCpu}, ` +
+          `disk ${formatGiB(ownerDisk)}.`;
+
+        $("#resource-host-budget").textContent =
+          `Host maximum including current allocation: ` +
+          `RAM ${formatGiB(hostRam)}, ` +
+          `CPU ${hostCpu}, ` +
+          `disk ${formatGiB(hostDisk)}. ` +
+          `Storage pool: ${resourceLimits.storage_pool}.`;
+
+        $("#resource-ram").max =
+          String(Math.min(ownerRam, hostRam) / GiB);
+
+        $("#resource-cpu").max =
+          String(Math.min(ownerCpu, hostCpu));
+
+        $("#resource-disk").max =
+          String(Math.min(ownerDisk, hostDisk) / GiB);
+
+        const blocked =
+          (allocationReport.blockers || []).length > 0;
+
+        $("#resource-status").textContent =
+          blocked
+            ? "Host allocation blockers exist. Resource increases are not permitted until reconciliation."
+            : `Saved limits loaded for ${resourceLimits.name}.`;
+
+        saveResourceButton.disabled =
+          busy || resourceLoading || !owner || !pool;
+      }
+
       async function loadAccess() {
         const id = containerSelect.value;
 
@@ -422,13 +715,115 @@ const title = "Container Management — Hobby Server Monitor";
         renderAccess(result);
       }
 
+      function renderHostOverview() {
+        const report = allocationReport;
+
+        if (!report || !hostInformation) {
+          return;
+        }
+
+        const ram = report.memory;
+        const cpu = report.cpu;
+
+        $("#allocation-ram").textContent =
+          `Total: ${formatGiB(ram.total_bytes)} | ` +
+          `Reserved: ${formatGiB(ram.reserve_bytes)} | ` +
+          `Allocated: ${formatGiB(ram.allocated_bytes)} | ` +
+          `Allocatable: ${formatGiB(ram.allocatable_bytes)}`;
+
+        $("#allocation-cpu").textContent =
+          `Total: ${cpu.total_threads} threads | ` +
+          `Reserved: ${cpu.reserve_threads} | ` +
+          `Allocated: ${cpu.allocated_threads} | ` +
+          `Allocatable: ${cpu.allocatable_threads}`;
+
+        $("#allocation-containers").textContent =
+          `Managed: ${report.managed_count} | ` +
+          `Unmanaged: ${report.unmanaged_count}`;
+
+        const blockers = report.blockers || [];
+
+        $("#allocation-status").textContent =
+          blockers.length
+            ? "New allocations blocked"
+            : "No host-accounting blockers detected";
+
+        const storageElement = $("#allocation-storage");
+        storageElement.replaceChildren();
+
+        for (const pool of report.storage_pools || []) {
+          const hostPool = hostInformation.storage_pools?.find(
+            (item) => item.name === pool.name,
+          );
+
+          const card = document.createElement("div");
+          card.className = "allocation-card";
+
+          const heading = document.createElement("h4");
+          heading.textContent =
+            `${pool.name} (${pool.driver})`;
+
+          const details = document.createElement("p");
+
+          details.textContent =
+            `Total: ${hostPool ? formatGiB(hostPool.total_bytes) : "Unknown"} | ` +
+            `Used: ${hostPool ? formatGiB(hostPool.used_bytes) : "Unknown"} | ` +
+            `Free: ${formatGiB(pool.free_bytes)} | ` +
+            `Reserved: ${formatGiB(pool.reserve_bytes)} | ` +
+            `Allocated: ${formatGiB(pool.allocated_bytes)} | ` +
+            `Allocatable: ${formatGiB(pool.allocatable_bytes)}`;
+
+          const verification = document.createElement("p");
+          verification.className = "muted";
+
+          verification.textContent = pool.disk_quota_verified
+            ? "Disk quota enforcement verified"
+            : "Disk quota enforcement not verified — new disk allocations disabled";
+
+          card.append(heading, details, verification);
+          storageElement.append(card);
+        }
+
+        if (!storageElement.children.length) {
+          storageElement.textContent =
+            "No storage pools reported.";
+        }
+
+        const blockersList = $("#allocation-blockers");
+        blockersList.replaceChildren();
+
+        if (!blockers.length) {
+          const item = document.createElement("li");
+          item.textContent = "No reconciliation blockers.";
+          blockersList.append(item);
+        } else {
+          for (const blocker of blockers) {
+            const item = document.createElement("li");
+            item.textContent = blocker;
+            blockersList.append(item);
+          }
+        }
+
+        $("#refresh-allocations-button").disabled = busy;
+      }
+
       async function loadAll() {
         const previousId = containerSelect.value;
 
-        const [containerResponse, userResponse] = await Promise.all([
+        const [
+          containerResponse,
+          userResponse,
+          allocations,
+          host,
+        ] = await Promise.all([
           getContainers(),
           getAdminUsers(),
+          getAdminAllocations(),
+          getAdminHost(),
         ]);
+
+        allocationReport = allocations;
+        hostInformation = host;
 
         const allContainers = Array.isArray(containerResponse)
           ? containerResponse
@@ -463,7 +858,12 @@ const title = "Container Management — Hobby Server Monitor";
         $("#container-summary").textContent =
           `${managedContainers.length} managed container(s) available`;
 
-        await loadAccess();
+        await Promise.all([
+          loadAccess(),
+          loadResourceLimits(),
+        ]);
+
+        renderHostOverview();
         syncButtons();
       }
 
@@ -648,6 +1048,12 @@ const title = "Container Management — Hobby Server Monitor";
         loadAccess().catch((error) => {
           showNotice(error?.message || "Unable to load container access.");
         });
+
+        loadResourceLimits().catch((error) => {
+          showNotice(
+            error?.message || "Unable to load resource limits.",
+          );
+        });
       });
 
       assignmentSelect.addEventListener("change", syncButtons);
@@ -716,6 +1122,42 @@ const title = "Container Management — Hobby Server Monitor";
         }
       });
 
+      $("#refresh-allocations-button").addEventListener(
+      "click",
+      async () => {
+        if (busy) {
+          return;
+        }
+
+        clearNotice();
+        setBusy(true);
+
+        try {
+          const [allocations, host] = await Promise.all([
+            getAdminAllocations(),
+            getAdminHost(),
+          ]);
+
+          allocationReport = allocations;
+          hostInformation = host;
+
+          renderHostOverview();
+          updateResourceBudget();
+
+          showNotice(
+            "Host allocation overview refreshed.",
+            "success",
+          );
+        } catch (error) {
+          showNotice(
+            error?.message ||
+            "Unable to refresh host allocation overview.",
+          );
+        } finally {
+          setBusy(false);
+        }
+      },
+    );
 
       document.querySelectorAll(
         "[data-lifecycle-action]",
@@ -725,6 +1167,116 @@ const title = "Container Management — Hobby Server Monitor";
             button.dataset.lifecycleAction,
           );
         });
+      });
+
+      resourceForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (
+          busy ||
+          resourceLoading ||
+          !resourceLimits ||
+          !csrfToken
+        ) {
+          return;
+        }
+
+        if (!resourceForm.reportValidity()) {
+          return;
+        }
+
+        const containerId = resourceLimits.id;
+
+        if (containerSelect.value !== containerId) {
+          showNotice("Container selection changed. Refresh first.");
+          return;
+        }
+
+        const payload = {
+          ram_limit_bytes: Math.round(
+            Number($("#resource-ram").value) * GiB,
+          ),
+          cpu_limit_cores: Number($("#resource-cpu").value),
+          cpu_allowance_percent: Number(
+            $("#resource-allowance").value,
+          ),
+          disk_limit_bytes: Math.round(
+            Number($("#resource-disk").value) * GiB,
+          ),
+        };
+
+        const saved = resourceLimits;
+
+        if (
+          !Number.isSafeInteger(payload.ram_limit_bytes) ||
+          !Number.isSafeInteger(payload.disk_limit_bytes) ||
+          !Number.isSafeInteger(payload.cpu_limit_cores) ||
+          !Number.isSafeInteger(payload.cpu_allowance_percent) ||
+          payload.ram_limit_bytes <= 0 ||
+          payload.disk_limit_bytes <= 0 ||
+          payload.cpu_limit_cores <= 0 ||
+          payload.cpu_allowance_percent < 1 ||
+          payload.cpu_allowance_percent > 100
+        ) {
+          showNotice("Invalid resource values.");
+          return;
+        }
+
+        if (payload.disk_limit_bytes < saved.disk_limit_bytes) {
+          showNotice("Reducing a root-disk limit is not supported.");
+          return;
+        }
+
+        const increased =
+          payload.ram_limit_bytes > saved.ram_limit_bytes ||
+          payload.cpu_limit_cores > saved.cpu_limit_cores ||
+          payload.disk_limit_bytes > saved.disk_limit_bytes;
+
+        if (increased && allocationReport?.blockers?.length) {
+          showNotice(
+            "Host allocation blockers must be resolved before increasing limits.",
+          );
+          return;
+        }
+
+        clearNotice();
+        setBusy(true);
+
+        try {
+          await updateContainerResourceLimits(
+            containerId,
+            payload,
+            csrfToken,
+          );
+
+          try {
+            await loadAll();
+
+            showNotice(
+              "Resource limits updated successfully.",
+              "success",
+            );
+          } catch (error) {
+            showNotice(
+              "Update completed, but refresh failed. Reload before editing again.",
+              "success",
+            );
+          }
+        } catch (error) {
+          showNotice(
+            error?.message || "Resource update failed.",
+          );
+
+          // Reload authoritative values after a failed update.
+          try {
+            await loadAll();
+          } catch {
+            resourceLimits = null;
+            saveResourceButton.disabled = true;
+          }
+        } finally {
+          setBusy(false);
+        }
       });
 
       async function initialize() {
@@ -947,6 +1499,38 @@ const title = "Container Management — Hobby Server Monitor";
 
       .message.success { color: #bbf7d0; }
       .hidden { display: none; }
+
+      #resource-form input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #e5e7eb;
+        background: #080d16;
+        font: inherit;
+      }
+
+      .allocation-card {
+        margin-top: 12px;
+        padding: 16px;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        background: #0b111c;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .allocation-card h4 {
+        margin: 0 0 10px;
+      }
+
+      .allocation-card p {
+        line-height: 1.7;
+      }
+
+      #allocation-blockers {
+        overflow-wrap: anywhere;
+      }
 
       @media (max-width: 900px) {
         .layout { grid-template-columns: 1fr; }

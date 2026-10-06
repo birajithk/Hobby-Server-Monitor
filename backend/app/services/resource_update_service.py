@@ -68,6 +68,40 @@ class ResourceUpdateService:
             )
         )
 
+    def get_current_limits(
+        self,
+        actor,
+        container_id,
+    ):
+        """Return saved resource limits for an Admin."""
+
+        require_admin(actor)
+
+        require_container_access(
+            actor,
+            container_id,
+        )
+
+        record = self.get_record(container_id)
+
+        if record["lxd_project"] != "default":
+            raise falcon.HTTPConflict(
+                title="Unsupported LXD project",
+            )
+
+        return {
+            "id": record["id"],
+            "name": record["lxd_name"],
+            "owner_id": record["owner_id"],
+            "storage_pool": record["storage_pool"],
+            "ram_limit_bytes": record["ram_limit_bytes"],
+            "cpu_limit_cores": record["cpu_limit_cores"],
+            "cpu_allowance_percent": record[
+                "cpu_allowance_percent"
+            ],
+            "disk_limit_bytes": record["disk_limit_bytes"],
+        }
+
     def validate_request(
         self,
         data,

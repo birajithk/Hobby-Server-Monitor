@@ -20,6 +20,24 @@ class ContainerResourceResource:
             else ResourceUpdateService()
         )
 
+    def on_get(
+        self,
+        req,
+        resp,
+        container_id,
+    ):
+        result = self.service.get_current_limits(
+            req.context.user,
+            container_id,
+        )
+
+        resp.set_header(
+            "Cache-Control",
+            "no-store",
+        )
+
+        resp.media = result
+
     def on_patch(
         self,
         req,
