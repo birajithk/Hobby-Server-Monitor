@@ -1,0 +1,1543 @@
+---
+const title =
+  "Hobby Server Monitor";
+---
+
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width"
+    />
+
+    <meta
+      name="description"
+      content="LXD server monitoring dashboard"
+    />
+
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <div class="layout">
+
+      <aside class="sidebar">
+        <div>
+
+          <h1>
+            Hobby Server
+            <br />
+            Monitor
+          </h1>
+        </div>
+
+        <nav>
+          <a
+            class="nav-item active"
+            href="/"
+          >
+            Overview
+          </a>
+
+		  <a href="/container" class="nav-item">
+			Container details
+		  </a>
+
+		  <a
+			id="admin-containers-link"
+			href="/admin/containers"
+			class="nav-item hidden"
+		  >
+  			Manage containers
+		  </a>
+		  <a
+			id="admin-users-link"
+			href="/admin/users"
+			class="nav-item hidden"
+		  >
+			Users
+		  </a>
+        </nav>
+
+        <div
+          id="account"
+          class="account"
+        >
+          Loading account...
+        </div>
+      </aside>
+
+
+      <main>
+
+        <header class="page-header">
+          <div>
+            <div class="eyebrow">
+              Server management
+            </div>
+
+            <h2>
+              Overview
+            </h2>
+          </div>
+
+          <div
+            id="connection-status"
+            class="connection-status"
+          >
+            Connecting...
+          </div>
+        </header>
+
+
+        <div
+          id="error-message"
+          class="error-message hidden"
+        ></div>
+
+
+        <section class="summary-grid">
+
+          <article class="summary-card">
+            <span>
+              Containers
+            </span>
+
+            <strong
+              id="container-count"
+            >
+              —
+            </strong>
+          </article>
+
+
+          <article class="summary-card">
+            <span>
+              Running
+            </span>
+
+            <strong
+              id="running-count"
+            >
+              —
+            </strong>
+          </article>
+
+
+          <article class="summary-card">
+            <span>
+              Allocated RAM
+            </span>
+
+            <strong
+              id="ram-used"
+            >
+              —
+            </strong>
+          </article>
+
+
+          <article class="summary-card">
+            <span>
+              Allocated CPU
+            </span>
+
+            <strong
+              id="cpu-used"
+            >
+              —
+            </strong>
+          </article>
+
+        </section>
+
+
+        <section class="section">
+
+          <div class="section-header">
+
+            <div>
+              <div class="eyebrow">
+                LXD containers
+              </div>
+
+              <h3>
+                Containers
+              </h3>
+            </div>
+
+            <button
+              id="refresh-button"
+              type="button"
+            >
+              Refresh
+            </button>
+
+          </div>
+
+
+          <div
+            id="container-grid"
+            class="container-grid"
+          >
+
+            <div class="empty-state">
+              Loading containers...
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+
+
+    <script>
+      import {
+        ApiError,
+        getContainers,
+        getCurrentUser,
+        getLatestMetrics,
+        getMyQuota,
+      } from "../lib/api.js";
+
+
+      const account =
+        document.querySelector(
+          "#account",
+        );
+
+	  const adminUsersLink =
+		document.querySelector(
+			"#admin-users-link",
+		);
+
+      const connectionStatus =
+        document.querySelector(
+          "#connection-status",
+        );
+
+      const errorMessage =
+        document.querySelector(
+          "#error-message",
+        );
+
+      const containerGrid =
+        document.querySelector(
+          "#container-grid",
+        );
+
+      const refreshButton =
+        document.querySelector(
+          "#refresh-button",
+        );
+
+      const containerCount =
+        document.querySelector(
+          "#container-count",
+        );
+
+      const runningCount =
+        document.querySelector(
+          "#running-count",
+        );
+
+      const ramUsed =
+        document.querySelector(
+          "#ram-used",
+        );
+
+      const cpuUsed =
+        document.querySelector(
+          "#cpu-used",
+        );
+
+
+      function escapeHtml(value) {
+        return String(
+          value ?? "",
+        )
+          .replaceAll(
+            "&",
+            "&amp;",
+          )
+          .replaceAll(
+            "<",
+            "&lt;",
+          )
+          .replaceAll(
+            ">",
+            "&gt;",
+          )
+          .replaceAll(
+            '"',
+            "&quot;",
+          )
+          .replaceAll(
+            "'",
+            "&#039;",
+          );
+      }
+
+
+      function formatBytes(value) {
+        const bytes =
+          Number(value);
+
+        if (
+          !Number.isFinite(
+            bytes,
+          )
+        ) {
+          return "—";
+        }
+
+        const gib =
+          bytes /
+          1024 /
+          1024 /
+          1024;
+
+        if (gib >= 1) {
+          return `${gib.toFixed(
+            2,
+          )} GiB`;
+        }
+
+        const mib =
+          bytes /
+          1024 /
+          1024;
+
+        return `${mib.toFixed(
+          0,
+        )} MiB`;
+      }
+
+
+      function showError(
+        message,
+      ) {
+        errorMessage.textContent =
+          message;
+
+        errorMessage.classList.remove(
+          "hidden",
+        );
+      }
+
+
+      function clearError() {
+        errorMessage.textContent =
+          "";
+
+        errorMessage.classList.add(
+          "hidden",
+        );
+      }
+
+
+      function normalizeContainers(
+        response,
+      ) {
+        if (
+          Array.isArray(response)
+        ) {
+          return response;
+        }
+
+        if (
+          response &&
+          Array.isArray(
+            response.containers,
+          )
+        ) {
+          return response.containers;
+        }
+
+        return [];
+      }
+
+
+      function quotaValue(
+        quota,
+        names,
+      ) {
+        for (
+          const name
+          of names
+        ) {
+          if (
+            quota?.[name] !==
+            undefined
+          ) {
+            return quota[name];
+          }
+
+          if (
+            quota?.allocated?.[
+              name
+            ] !== undefined
+          ) {
+            return (
+              quota.allocated[
+                name
+              ]
+            );
+          }
+
+          if (
+            quota?.usage?.[
+              name
+            ] !== undefined
+          ) {
+            return (
+              quota.usage[
+                name
+              ]
+            );
+          }
+        }
+
+        return null;
+      }
+
+
+      function getStatus(
+        container,
+      ) {
+        return (
+          container.status ||
+          container.state ||
+          "Unknown"
+        );
+      }
+
+
+      async function buildCard(
+        container,
+      ) {
+        const id =
+          container.id;
+
+        const name =
+          container.lxd_name ||
+          container.name ||
+          "Unnamed";
+
+        const status =
+          getStatus(container);
+
+        let metric = null;
+
+        if (id) {
+          try {
+            metric =
+              await getLatestMetrics(
+                id,
+              );
+          } catch (error) {
+            console.error(
+              "Metrics request failed",
+              error,
+            );
+          }
+        }
+
+
+        const fields =
+          metric?.metric?.fields ||
+          {};
+
+        const cpu =
+          fields.cpu_percent;
+
+        const memory =
+          fields.memory_usage_bytes;
+
+        const disk =
+          fields.disk_usage_bytes;
+
+        const processes =
+          fields.processes;
+
+        const ipv4 =
+          metric?.metric?.ipv4 ||
+          "No IPv4";
+
+
+		return `
+		<article
+			class="container-card"
+			data-container-id="${escapeHtml(id)}"
+			tabindex="0"
+			role="link"
+		>
+
+            <div
+              class="container-card-header"
+            >
+
+              <div>
+                <strong
+                  class="container-name"
+                >
+                  ${escapeHtml(
+                    name,
+                  )}
+                </strong>
+
+                <span
+                  class="container-ip"
+                >
+                  ${escapeHtml(
+                    ipv4,
+                  )}
+                </span>
+              </div>
+
+
+              <span
+                class="status-badge
+                  ${escapeHtml(
+                    status
+                      .toLowerCase(),
+                  )}"
+              >
+                ${escapeHtml(
+                  status,
+                )}
+              </span>
+
+            </div>
+
+
+            <div
+              class="metric-grid"
+            >
+
+              <div
+                class="metric"
+              >
+                <span>
+                  CPU
+                </span>
+
+                <strong>
+                  ${
+                    typeof cpu ===
+                    "number"
+                      ? `${cpu.toFixed(
+                          2,
+                        )}%`
+                      : "—"
+                  }
+                </strong>
+              </div>
+
+
+              <div
+                class="metric"
+              >
+                <span>
+                  Memory
+                </span>
+
+                <strong>
+                  ${formatBytes(
+                    memory,
+                  )}
+                </strong>
+              </div>
+
+
+              <div
+                class="metric"
+              >
+                <span>
+                  Disk used
+                </span>
+
+                <strong>
+                  ${formatBytes(
+                    disk,
+                  )}
+                </strong>
+              </div>
+
+
+              <div
+                class="metric"
+              >
+                <span>
+                  Processes
+                </span>
+
+                <strong>
+                  ${
+                    typeof processes ===
+                    "number"
+                      ? processes
+                      : "—"
+                  }
+                </strong>
+              </div>
+
+            </div>
+
+          </article>
+        `;
+      }
+
+
+      async function loadDashboard() {
+
+        clearError();
+
+        connectionStatus.textContent =
+          "Loading";
+
+
+        try {
+
+          const [
+            userResponse,
+            containerResponse,
+            quotaResponse,
+          ] =
+            await Promise.all([
+              getCurrentUser(),
+              getContainers(),
+              getMyQuota(),
+            ]);
+
+
+          const user =
+            userResponse.user ||
+            userResponse;
+
+		  if (
+			user.role === "admin"
+		  ) {
+			adminUsersLink
+				?.classList
+				.remove(
+		          "hidden",
+				);
+			document
+				.querySelector("#admin-containers-link")
+				?.classList.remove("hidden");
+			}
+
+          account.innerHTML = `
+            <strong>
+              ${escapeHtml(
+                user.name ||
+                user.email ||
+                "User",
+              )}
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                user.role ||
+                "",
+              )}
+            </span>
+          `;
+
+
+          const containers =
+            normalizeContainers(
+              containerResponse,
+            );
+
+
+          containerCount.textContent =
+            String(
+              containers.length,
+            );
+
+
+          const running =
+            containers.filter(
+              (container) =>
+                getStatus(
+                  container,
+                )
+                  .toLowerCase()
+                === "running",
+            );
+
+
+          runningCount.textContent =
+            String(
+              running.length,
+            );
+
+
+          const ram =
+            quotaValue(
+              quotaResponse,
+              [
+                "ram_allocated_bytes",
+                "allocated_ram_bytes",
+                "ram_bytes",
+                "ram",
+              ],
+            );
+
+
+          ramUsed.textContent =
+            formatBytes(
+              ram,
+            );
+
+
+          const cpu =
+            quotaValue(
+              quotaResponse,
+              [
+                "cpu_allocated_cores",
+                "allocated_cpu_cores",
+                "cpu_cores",
+                "cpu",
+              ],
+            );
+
+
+          cpuUsed.textContent =
+            (
+              cpu !== null
+              ? String(cpu)
+              : "—"
+            );
+
+
+          if (
+            containers.length ===
+            0
+          ) {
+
+            containerGrid.innerHTML = `
+              <div
+                class="empty-state"
+              >
+                No containers are assigned
+                to this account.
+              </div>
+            `;
+
+          } else {
+
+            const cards =
+              await Promise.all(
+                containers.map(
+                  buildCard,
+                ),
+              );
+
+
+            containerGrid.innerHTML =
+              cards.join("");
+
+			containerGrid
+				.querySelectorAll(
+					".container-card[data-container-id]",
+				)
+				.forEach((card) => {
+
+					const openDetail = () => {
+					const id =
+						card.dataset.containerId;
+
+					if (!id) {
+						return;
+					}
+
+					window.location.href =
+						`/container?id=${encodeURIComponent(
+						id,
+						)}`;
+					};
+
+					card.addEventListener(
+					"click",
+					openDetail,
+					);
+
+					card.addEventListener(
+					"keydown",
+					(event) => {
+						if (
+						event.key === "Enter" ||
+						event.key === " "
+						) {
+						event.preventDefault();
+
+						openDetail();
+						}
+					},
+					);
+				});
+          }
+
+
+          connectionStatus.textContent =
+            "Connected";
+
+          connectionStatus.classList.add(
+            "connected",
+          );
+
+
+        } catch (error) {
+
+          connectionStatus.textContent =
+            "Disconnected";
+
+          connectionStatus.classList.remove(
+            "connected",
+          );
+
+
+          if (
+            error instanceof
+              ApiError &&
+            error.status ===
+              401
+          ) {
+
+            showError(
+              "Your session has expired or you are not signed in.",
+            );
+
+            return;
+          }
+
+
+          console.error(
+            error,
+          );
+
+
+          showError(
+            error?.message ||
+              "Unable to load dashboard.",
+          );
+
+        }
+      }
+
+
+      refreshButton.addEventListener(
+        "click",
+        loadDashboard,
+      );
+
+      /*
+       * UI polling is independent of
+       * metrics collection.
+       *
+       * Falcon only reads values already
+       * collected by the separate
+       * collector process.
+       */
+		let pollingTimer = null;
+
+
+		function stopPolling() {
+		if (
+			pollingTimer !== null
+		) {
+			window.clearTimeout(
+			pollingTimer,
+			);
+
+			pollingTimer = null;
+		}
+		}
+
+
+		function schedulePolling() {
+		stopPolling();
+
+		if (
+			document.visibilityState
+			!== "visible"
+		) {
+			return;
+		}
+
+		pollingTimer =
+			window.setTimeout(
+			async () => {
+
+				pollingTimer = null;
+
+				if (
+				document.visibilityState
+				!== "visible"
+				) {
+				return;
+				}
+
+				await loadDashboard();
+
+				schedulePolling();
+			},
+			10_000,
+			);
+		}
+
+
+		document.addEventListener(
+		"visibilitychange",
+		async () => {
+
+			if (
+			document.visibilityState
+			=== "visible"
+			) {
+			await loadDashboard();
+
+			schedulePolling();
+			} else {
+			stopPolling();
+			}
+		},
+		);
+
+
+		window.addEventListener(
+		"pagehide",
+		stopPolling,
+		);
+
+		loadDashboard();
+
+		if (
+		document.visibilityState
+		=== "visible"
+		) {
+		schedulePolling();
+		}
+    </script>
+
+	<script>
+		import { initializeNavigation } from "../lib/navigation.js";
+
+		initializeNavigation();
+	</script>
+
+  </body>
+</html>
+
+
+<style is:global>
+
+  :root {
+    font-family:
+      Inter,
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #080d16;
+  }
+
+
+  * {
+    box-sizing:
+      border-box;
+  }
+
+
+  body {
+    margin: 0;
+
+    min-height:
+      100vh;
+
+    background:
+      #080d16;
+  }
+
+
+  button,
+  a {
+    font:
+      inherit;
+  }
+
+
+  .layout {
+    display:
+      grid;
+
+    grid-template-columns:
+      250px minmax(
+        0,
+        1fr
+      );
+
+    min-height:
+      100vh;
+  }
+
+
+  .sidebar {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      36px;
+
+    padding:
+      28px 22px;
+
+    border-right:
+      1px solid
+      #1f2937;
+
+    background:
+      #0d1420;
+  }
+
+
+  .brand-small,
+  .eyebrow {
+    color:
+      #7dd3fc;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  .sidebar h1 {
+    margin:
+      7px 0 0;
+
+    font-size:
+      20px;
+
+    line-height:
+      1.3;
+  }
+
+
+  nav {
+    flex:
+      1;
+  }
+
+
+  .nav-item {
+    display:
+      block;
+
+    padding:
+      11px 12px;
+
+    border-radius:
+      8px;
+
+    color:
+      #9ca3af;
+
+    text-decoration:
+      none;
+  }
+
+
+  .nav-item.active {
+    color:
+      #f9fafb;
+
+    background:
+      #172033;
+  }
+
+
+  .account {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      4px;
+
+    padding-top:
+      18px;
+
+    border-top:
+      1px solid
+      #1f2937;
+  }
+
+
+  .account span {
+    color:
+      #9ca3af;
+
+    font-size:
+      13px;
+  }
+
+
+  main {
+    padding:
+      30px;
+  }
+
+
+  .page-header,
+  .section-header,
+  .container-card-header {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    gap:
+      16px;
+  }
+
+
+  .page-header h2 {
+    margin:
+      6px 0 0;
+
+    font-size:
+      28px;
+  }
+
+
+  .section-header h3 {
+    margin:
+      5px 0 0;
+
+    font-size:
+      20px;
+  }
+
+
+  .connection-status {
+    padding:
+      7px 11px;
+
+    border-radius:
+      999px;
+
+    background:
+      #332421;
+
+    color:
+      #fca5a5;
+
+    font-size:
+      12px;
+
+    font-weight:
+      700;
+  }
+
+
+  .connection-status.connected {
+    background:
+      #102c27;
+
+    color:
+      #6ee7b7;
+  }
+
+
+  .summary-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      16px;
+
+    margin-top:
+      28px;
+  }
+
+
+  .summary-card,
+  .container-card {
+    border:
+      1px solid
+      #1f2937;
+
+    border-radius:
+      12px;
+
+    background:
+      #101826;
+  }
+
+
+  .summary-card {
+    padding:
+      18px;
+  }
+
+
+  .summary-card span {
+    color:
+      #9ca3af;
+
+    font-size:
+      13px;
+  }
+
+
+  .summary-card strong {
+    display:
+      block;
+
+    margin-top:
+      10px;
+
+    font-size:
+      24px;
+  }
+
+
+  .section {
+    margin-top:
+      32px;
+  }
+
+
+  .section-header {
+    margin-bottom:
+      16px;
+  }
+
+.container-card[data-container-id] {
+  cursor: pointer;
+}
+
+.container-card[data-container-id]:hover {
+  border-color: #334155;
+}
+
+.container-card[data-container-id]:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
+  #refresh-button {
+    border:
+      1px solid
+      #334155;
+
+    border-radius:
+      8px;
+
+    padding:
+      9px 13px;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #172033;
+
+    cursor:
+      pointer;
+  }
+
+
+  #refresh-button:hover {
+    background:
+      #202c43;
+  }
+
+
+  .container-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        auto-fit,
+        minmax(
+          320px,
+          1fr
+        )
+      );
+
+    gap:
+      16px;
+  }
+
+
+  .container-card {
+    padding:
+      18px;
+  }
+
+
+  .container-card-header
+    > div {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    gap:
+      4px;
+  }
+
+
+  .container-name {
+    font-size:
+      16px;
+  }
+
+
+  .container-ip {
+    color:
+      #9ca3af;
+
+    font-size:
+      13px;
+  }
+
+
+  .status-badge {
+    padding:
+      6px 10px;
+
+    border-radius:
+      999px;
+
+    background:
+      #202939;
+
+    color:
+      #9ca3af;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  .status-badge.running {
+    background:
+      #102c27;
+
+    color:
+      #6ee7b7;
+  }
+
+
+  .status-badge.frozen {
+    background:
+      #302a17;
+
+    color:
+      #fde68a;
+  }
+
+
+  .metric-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        1fr
+      );
+
+    gap:
+      10px;
+
+    margin-top:
+      20px;
+  }
+
+
+  .metric {
+    padding:
+      12px;
+
+    border-radius:
+      8px;
+
+    background:
+      #0b111c;
+  }
+
+
+  .metric span {
+    display:
+      block;
+
+    color:
+      #9ca3af;
+
+    font-size:
+      12px;
+  }
+
+
+  .metric strong {
+    display:
+      block;
+
+    margin-top:
+      5px;
+
+    font-size:
+      15px;
+  }
+
+
+  .error-message {
+    margin-top:
+      20px;
+
+    padding:
+      14px;
+
+    border:
+      1px solid
+      #7f1d1d;
+
+    border-radius:
+      8px;
+
+    background:
+      #2b1217;
+
+    color:
+      #fecaca;
+  }
+
+
+  .empty-state {
+    padding:
+      32px;
+
+    border:
+      1px dashed
+      #334155;
+
+    border-radius:
+      10px;
+
+    color:
+      #9ca3af;
+
+    text-align:
+      center;
+  }
+
+
+  .hidden {
+    display:
+      none;
+  }
+
+
+  @media (
+    max-width:
+      900px
+  ) {
+
+    .layout {
+      grid-template-columns:
+        1fr;
+    }
+
+
+    .sidebar {
+      display:
+        none;
+    }
+
+
+    .summary-grid {
+      grid-template-columns:
+        repeat(
+          2,
+          1fr
+        );
+    }
+
+
+    main {
+      padding:
+        20px;
+    }
+
+  }
+
+
+  @media (
+    max-width:
+      560px
+  ) {
+
+    .summary-grid,
+    .metric-grid {
+      grid-template-columns:
+        1fr;
+    }
+
+  }
+
+</style>

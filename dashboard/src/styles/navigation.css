@@ -1,0 +1,144 @@
+/* Shared sidebar behavior across all dashboard pages. */
+
+body .layout {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+body .layout > .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  width: 250px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+body .layout > .sidebar nav {
+  flex: 1;
+}
+
+#hsm-sidebar-toggle {
+  position: fixed;
+  top: 12px;
+  left: 216px;
+  z-index: 110;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #172033;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+#hsm-sidebar-toggle:hover {
+  background: #27374e;
+}
+
+#hsm-sidebar-toggle:focus-visible,
+#hsm-logout:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
+
+html.hsm-sidebar-closed body .layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html.hsm-sidebar-closed body .layout > .sidebar {
+  display: none;
+}
+
+html.hsm-sidebar-closed #hsm-sidebar-toggle {
+  left: 12px;
+}
+
+.hsm-sidebar-footer {
+  padding-top: 12px;
+  margin-top: 10px;
+  border-top: 1px solid #1f2937;
+}
+
+#hsm-logout {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #172033;
+  color: #e5e7eb;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#hsm-logout:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/*
+ * Existing page styles hide the sidebar below
+ * 900px or 950px. Override those inconsistencies.
+ */
+@media (max-width: 950px) {
+  body .layout {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+
+  body .layout > .sidebar {
+    display: flex;
+  }
+
+  html.hsm-sidebar-closed body .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.hsm-sidebar-closed body .layout > .sidebar {
+    display: none;
+  }
+}
+
+/* On narrow screens the sidebar becomes an overlay. */
+@media (max-width: 700px) {
+  body .layout,
+  html.hsm-sidebar-closed body .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body .layout > .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: 100;
+  }
+
+  body .layout > main {
+    min-width: 0;
+  }
+}
+
+/*
+ * Reserve space for the sidebar toggle
+ * when the sidebar is collapsed.
+ */
+html.hsm-sidebar-closed body .layout > main {
+  padding-top: 72px;
+}
+
+/*
+ * Keep the toggle visible above content.
+ */
+#hsm-sidebar-toggle {
+  z-index: 110;
+}

@@ -1,0 +1,1043 @@
+<section class="terminal-panel">
+
+  <div class="terminal-heading">
+
+    <div>
+      <div class="eyebrow">
+        Container command execution
+      </div>
+
+      <h3>
+        Terminal
+      </h3>
+
+      <p>
+        Non-interactive commands run inside
+        this container with bounded execution
+        time and output.
+      </p>
+    </div>
+
+    <div
+      id="terminal-state"
+      class="terminal-state"
+    >
+      Ready
+    </div>
+
+  </div>
+
+
+  <div class="terminal-form">
+
+    <label for="terminal-command">
+      Command
+    </label>
+
+    <textarea
+      id="terminal-command"
+      maxlength="2048"
+      rows="4"
+      spellcheck="false"
+      placeholder="Example: id && whoami && pwd"
+    ></textarea>
+
+
+    <div class="terminal-actions">
+
+      <span class="shortcut">
+        Ctrl + Enter to run
+      </span>
+
+      <div>
+        <button
+          id="terminal-clear"
+          class="secondary"
+          type="button"
+        >
+          Clear
+        </button>
+
+        <button
+          id="terminal-run"
+          type="button"
+        >
+          Run command
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="terminal-error"
+    class="terminal-error hidden"
+  ></div>
+
+
+  <div class="result-meta">
+
+    <div>
+      <span>Exit code</span>
+      <strong id="exit-code">—</strong>
+    </div>
+
+    <div>
+      <span>Identity</span>
+      <strong id="execution-identity">—</strong>
+    </div>
+
+    <div>
+      <span>Duration</span>
+      <strong id="execution-duration">—</strong>
+    </div>
+
+    <div>
+      <span>Timeout</span>
+      <strong id="execution-timeout">—</strong>
+    </div>
+
+  </div>
+
+
+  <div class="output-grid">
+
+    <article>
+      <div class="output-heading">
+        stdout
+      </div>
+
+      <pre
+        id="stdout-output"
+      >No command executed yet.</pre>
+
+      <div
+        id="stdout-warning"
+        class="output-warning hidden"
+      >
+        Output was truncated.
+      </div>
+    </article>
+
+
+    <article>
+      <div class="output-heading">
+        stderr
+      </div>
+
+      <pre
+        id="stderr-output"
+      >No command executed yet.</pre>
+
+      <div
+        id="stderr-warning"
+        class="output-warning hidden"
+      >
+        Output was truncated.
+      </div>
+    </article>
+
+  </div>
+
+</section>
+
+
+<script>
+  import {
+    ApiError,
+    executeContainerCommand,
+    getCurrentUser,
+  } from "../lib/api.js";
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search,
+    );
+
+  const containerId =
+    params.get("id");
+
+
+  const commandInput =
+    document.querySelector(
+      "#terminal-command",
+    );
+
+  const runButton =
+    document.querySelector(
+      "#terminal-run",
+    );
+
+  const clearButton =
+    document.querySelector(
+      "#terminal-clear",
+    );
+
+  const terminalState =
+    document.querySelector(
+      "#terminal-state",
+    );
+
+  const terminalError =
+    document.querySelector(
+      "#terminal-error",
+    );
+
+  const exitCode =
+    document.querySelector(
+      "#exit-code",
+    );
+
+  const executionIdentity =
+    document.querySelector(
+      "#execution-identity",
+    );
+
+  const executionDuration =
+    document.querySelector(
+      "#execution-duration",
+    );
+
+  const executionTimeout =
+    document.querySelector(
+      "#execution-timeout",
+    );
+
+  const stdoutOutput =
+    document.querySelector(
+      "#stdout-output",
+    );
+
+  const stderrOutput =
+    document.querySelector(
+      "#stderr-output",
+    );
+
+  const stdoutWarning =
+    document.querySelector(
+      "#stdout-warning",
+    );
+
+  const stderrWarning =
+    document.querySelector(
+      "#stderr-warning",
+    );
+
+
+  let csrfToken = null;
+
+  let running = false;
+
+
+  function setError(
+    message,
+  ) {
+    terminalError.textContent =
+      message;
+
+    terminalError.classList.remove(
+      "hidden",
+    );
+  }
+
+
+  function clearError() {
+    terminalError.textContent =
+      "";
+
+    terminalError.classList.add(
+      "hidden",
+    );
+  }
+
+
+  function setRunning(
+    value,
+  ) {
+    running =
+      value;
+
+    commandInput.disabled =
+      value;
+
+    runButton.disabled =
+      value;
+
+    clearButton.disabled =
+      value;
+
+    terminalState.textContent =
+      value
+        ? "Running"
+        : "Ready";
+  }
+
+
+  async function initialize() {
+
+    if (!containerId) {
+      setError(
+        "No container ID was supplied.",
+      );
+
+      runButton.disabled =
+        true;
+
+      return;
+    }
+
+
+    try {
+      const response =
+        await getCurrentUser();
+
+      csrfToken =
+        response.csrf_token ||
+        response.user?.csrf_token ||
+        null;
+
+
+      if (!csrfToken) {
+        setError(
+          "CSRF token was not provided by the authenticated session.",
+        );
+
+        runButton.disabled =
+          true;
+      }
+
+    } catch (error) {
+
+      runButton.disabled =
+        true;
+
+      if (
+        error instanceof
+          ApiError &&
+        error.status === 401
+      ) {
+        setError(
+          "You are not signed in.",
+        );
+
+        return;
+      }
+
+      setError(
+        error?.message ||
+        "Unable to initialize terminal.",
+      );
+    }
+  }
+
+
+  async function execute() {
+
+    if (running) {
+      return;
+    }
+
+
+    clearError();
+
+    const command =
+      commandInput.value;
+
+
+    if (!command.trim()) {
+      setError(
+        "Enter a command first.",
+      );
+
+      commandInput.focus();
+
+      return;
+    }
+
+
+    if (!csrfToken) {
+      setError(
+        "The authenticated CSRF token is unavailable.",
+      );
+
+      return;
+    }
+
+
+    setRunning(
+      true,
+    );
+
+    terminalState.textContent =
+      "Executing";
+
+
+    try {
+
+      const result =
+        await executeContainerCommand(
+          containerId,
+          command,
+          csrfToken,
+        );
+
+
+      exitCode.textContent =
+        String(
+          result.exit_code,
+        );
+
+
+      executionIdentity.textContent =
+        result.execution_identity ||
+        "—";
+
+
+      executionDuration.textContent =
+        Number.isFinite(
+          Number(
+            result.duration_ms,
+          ),
+        )
+          ? `${
+              result.duration_ms
+            } ms`
+          : "—";
+
+
+      executionTimeout.textContent =
+        result.timed_out
+          ? "Yes"
+          : "No";
+
+
+      stdoutOutput.textContent =
+        result.stdout ||
+        "(no stdout)";
+
+
+      stderrOutput.textContent =
+        result.stderr ||
+        "(no stderr)";
+
+
+      stdoutWarning.classList.toggle(
+        "hidden",
+        !result.stdout_truncated,
+      );
+
+
+      stderrWarning.classList.toggle(
+        "hidden",
+        !result.stderr_truncated,
+      );
+
+
+      terminalState.textContent =
+        result.timed_out
+          ? "Timed out"
+          : (
+              result.exit_code === 0
+                ? "Completed"
+                : "Exited with error"
+            );
+
+
+    } catch (error) {
+
+      stdoutOutput.textContent =
+        "(command was not executed)";
+
+      stderrOutput.textContent =
+        "(command was not executed)";
+
+
+      if (
+        error instanceof
+        ApiError
+      ) {
+
+        if (
+          error.status === 403
+        ) {
+          setError(
+            "You do not have permission to execute commands in this container.",
+          );
+
+        } else if (
+          error.status === 409
+        ) {
+          setError(
+            error.message,
+          );
+
+        } else if (
+          error.status === 429
+        ) {
+          setError(
+            "Terminal execution capacity is currently full. Try again shortly.",
+          );
+
+        } else {
+          setError(
+            error.message,
+          );
+        }
+
+      } else {
+
+        setError(
+          error?.message ||
+          "Command execution failed.",
+        );
+      }
+
+
+      terminalState.textContent =
+        "Failed";
+
+    } finally {
+
+      running =
+        false;
+
+      commandInput.disabled =
+        false;
+
+      runButton.disabled =
+        false;
+
+      clearButton.disabled =
+        false;
+    }
+  }
+
+
+  function clearTerminal() {
+
+    if (running) {
+      return;
+    }
+
+    clearError();
+
+    commandInput.value =
+      "";
+
+    exitCode.textContent =
+      "—";
+
+    executionIdentity.textContent =
+      "—";
+
+    executionDuration.textContent =
+      "—";
+
+    executionTimeout.textContent =
+      "—";
+
+    stdoutOutput.textContent =
+      "No command executed yet.";
+
+    stderrOutput.textContent =
+      "No command executed yet.";
+
+    stdoutWarning.classList.add(
+      "hidden",
+    );
+
+    stderrWarning.classList.add(
+      "hidden",
+    );
+
+    terminalState.textContent =
+      "Ready";
+
+    commandInput.focus();
+  }
+
+
+  runButton.addEventListener(
+    "click",
+    execute,
+  );
+
+
+  clearButton.addEventListener(
+    "click",
+    clearTerminal,
+  );
+
+
+  commandInput.addEventListener(
+    "keydown",
+    (event) => {
+
+      if (
+        event.ctrlKey &&
+        event.key === "Enter"
+      ) {
+        event.preventDefault();
+
+        execute();
+      }
+    },
+  );
+
+
+  initialize();
+</script>
+
+
+<style>
+
+  .terminal-panel {
+    margin-top:
+      32px;
+
+    padding:
+      20px;
+
+    border:
+      1px solid #1f2937;
+
+    border-radius:
+      12px;
+
+    background:
+      #101826;
+  }
+
+
+  .terminal-heading {
+    display:
+      flex;
+
+    justify-content:
+      space-between;
+
+    align-items:
+      flex-start;
+
+    gap:
+      20px;
+  }
+
+
+  .eyebrow {
+    color:
+      #7dd3fc;
+
+    font-size:
+      11px;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.12em;
+
+    text-transform:
+      uppercase;
+  }
+
+
+  .terminal-heading h3 {
+    margin:
+      5px 0 4px;
+  }
+
+
+  .terminal-heading p {
+    margin:
+      0;
+
+    color:
+      #94a3b8;
+
+    font-size:
+      13px;
+  }
+
+
+  .terminal-state {
+    padding:
+      6px 10px;
+
+    border-radius:
+      999px;
+
+    background:
+      #172033;
+
+    color:
+      #bae6fd;
+
+    font-size:
+      12px;
+
+    font-weight:
+      700;
+  }
+
+
+  .terminal-form {
+    margin-top:
+      20px;
+  }
+
+
+  label {
+    display:
+      block;
+
+    margin-bottom:
+      7px;
+
+    color:
+      #cbd5e1;
+
+    font-size:
+      13px;
+
+    font-weight:
+      600;
+  }
+
+
+  textarea {
+    width:
+      100%;
+
+    resize:
+      vertical;
+
+    min-height:
+      96px;
+
+    border:
+      1px solid #334155;
+
+    border-radius:
+      8px;
+
+    padding:
+      12px;
+
+    outline:
+      none;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #080d16;
+
+    font-family:
+      "SFMono-Regular",
+      Consolas,
+      "Liberation Mono",
+      monospace;
+
+    font-size:
+      13px;
+  }
+
+
+  textarea:focus {
+    border-color:
+      #7dd3fc;
+  }
+
+
+  .terminal-actions {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    gap:
+      12px;
+
+    margin-top:
+      10px;
+  }
+
+
+  .shortcut {
+    color:
+      #64748b;
+
+    font-size:
+      12px;
+  }
+
+
+  button {
+    border:
+      1px solid #334155;
+
+    border-radius:
+      7px;
+
+    padding:
+      8px 12px;
+
+    color:
+      #e5e7eb;
+
+    background:
+      #22304a;
+
+    cursor:
+      pointer;
+  }
+
+
+  button.secondary {
+    margin-right:
+      6px;
+
+    background:
+      #111827;
+  }
+
+
+  button:disabled {
+    cursor:
+      not-allowed;
+
+    opacity:
+      0.5;
+  }
+
+
+  .terminal-error {
+    margin-top:
+      14px;
+
+    padding:
+      11px;
+
+    border:
+      1px solid #7f1d1d;
+
+    border-radius:
+      7px;
+
+    color:
+      #fecaca;
+
+    background:
+      #2b1217;
+  }
+
+
+  .result-meta {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      10px;
+
+    margin-top:
+      18px;
+  }
+
+
+  .result-meta > div {
+    padding:
+      11px;
+
+    border-radius:
+      7px;
+
+    background:
+      #0b111c;
+  }
+
+
+  .result-meta span {
+    display:
+      block;
+
+    color:
+      #64748b;
+
+    font-size:
+      11px;
+  }
+
+
+  .result-meta strong {
+    display:
+      block;
+
+    margin-top:
+      4px;
+
+    font-size:
+      13px;
+  }
+
+
+  .output-grid {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:
+      12px;
+
+    margin-top:
+      14px;
+  }
+
+
+  .output-grid article {
+    min-width:
+      0;
+
+    border:
+      1px solid #1f2937;
+
+    border-radius:
+      8px;
+
+    overflow:
+      hidden;
+
+    background:
+      #080d16;
+  }
+
+
+  .output-heading {
+    padding:
+      8px 11px;
+
+    border-bottom:
+      1px solid #1f2937;
+
+    color:
+      #94a3b8;
+
+    font-family:
+      monospace;
+
+    font-size:
+      12px;
+  }
+
+
+  pre {
+    min-height:
+      180px;
+
+    max-height:
+      360px;
+
+    margin:
+      0;
+
+    padding:
+      12px;
+
+    overflow:
+      auto;
+
+    white-space:
+      pre-wrap;
+
+    overflow-wrap:
+      anywhere;
+
+    color:
+      #d1fae5;
+
+    font-family:
+      "SFMono-Regular",
+      Consolas,
+      "Liberation Mono",
+      monospace;
+
+    font-size:
+      12px;
+
+    line-height:
+      1.5;
+  }
+
+
+  .output-warning {
+    padding:
+      7px 11px;
+
+    border-top:
+      1px solid #713f12;
+
+    color:
+      #fde68a;
+
+    background:
+      #2a2112;
+
+    font-size:
+      11px;
+  }
+
+
+  .hidden {
+    display:
+      none;
+  }
+
+
+  @media (
+    max-width:
+      700px
+  ) {
+
+    .terminal-heading,
+    .terminal-actions {
+      align-items:
+        stretch;
+
+      flex-direction:
+        column;
+    }
+
+
+    .result-meta,
+    .output-grid {
+      grid-template-columns:
+        1fr;
+    }
+
+  }
+
+</style>

@@ -1,0 +1,937 @@
+
+---
+const title = "Create Container — Hobby Server Monitor";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h1>Hobby Server<br />Monitor</h1>
+
+        <nav aria-label="Main navigation">
+          <a href="/" class="nav-item">Overview</a>
+          <a href="/container" class="nav-item">
+            Container details
+          </a>
+          <a href="/admin/containers" class="nav-item active">
+            Manage containers
+          </a>
+          <a href="/admin/users" class="nav-item">Users</a>
+        </nav>
+
+        <div id="account" class="account">
+          Loading account...
+        </div>
+      </aside>
+
+      <main>
+        <header class="page-header">
+          <div>
+            <a href="/admin/containers" class="back-link">
+              ← Manage containers
+            </a>
+            <h2>Create container</h2>
+            <p>
+              Provision an Ubuntu container with resource limits,
+              ownership and access controls.
+            </p>
+          </div>
+        </header>
+
+        <div id="notice" class="notice hidden" role="status"
+          aria-live="polite"></div>
+
+        <section class="panel">
+          <h3>Available host resources</h3>
+          <div class="stats">
+            <div>
+              <span>Available RAM</span>
+              <strong id="host-ram">—</strong>
+            </div>
+            <div>
+              <span>Available CPU</span>
+              <strong id="host-cpu">—</strong>
+            </div>
+            <div>
+              <span>Available disk</span>
+              <strong id="host-disk">—</strong>
+            </div>
+            <div>
+              <span>Host status</span>
+              <strong id="host-status">Loading</strong>
+            </div>
+          </div>
+
+          <p id="blockers" class="muted"></p>
+        </section>
+
+        <form id="creation-form">
+          <section class="panel">
+            <h3>Container configuration</h3>
+
+            <div class="form-grid">
+              <label>
+                Container name
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="hsm-test-02"
+                  maxlength="63"
+                  pattern="[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
+                  required
+                />
+              </label>
+
+              <label>
+                Owner
+                <select id="owner" required disabled>
+                  <option value="">Loading users...</option>
+                </select>
+              </label>
+
+              <label>
+                Operating system image
+                <select id="image" required>
+                  <option value="24.04">
+                    Ubuntu 24.04 LTS
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                Network
+                <select id="network" required disabled>
+                  <option value="">Loading networks...</option>
+                </select>
+              </label>
+
+              <label>
+                Storage pool
+                <select id="storage" required disabled>
+                  <option value="">Loading storage pools...</option>
+                </select>
+              </label>
+
+              <label>
+                Description
+                <input
+                  id="description"
+                  type="text"
+                  maxlength="500"
+                  placeholder="Temporary container for testing"
+                />
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Resource allocation</h3>
+            <p class="muted">
+              Limits are calculated from the selected owner's
+              remaining quota and the available host budget.
+            </p>
+
+            <div class="form-grid">
+              <label>
+                RAM (GiB)
+                <input
+                  id="ram"
+                  type="number"
+                  min="0.25"
+                  step="0.25"
+                  value="0.5"
+                  required
+                />
+                <small id="ram-limit">—</small>
+              </label>
+
+              <label>
+                CPU cores
+                <input
+                  id="cpu"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="1"
+                  required
+                />
+                <small id="cpu-limit">—</small>
+              </label>
+
+              <label>
+                CPU allowance (%)
+                <input
+                  id="allowance"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value="100"
+                  required
+                />
+                <small>Allowed range: 1–100%</small>
+              </label>
+
+              <label>
+                Disk (GiB)
+                <input
+                  id="disk"
+                  type="number"
+                  min="0.25"
+                  step="0.25"
+                  value="2"
+                  required
+                />
+                <small id="disk-limit">—</small>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h3>Startup and lifecycle</h3>
+
+            <label class="check-row">
+              <input id="autostart" type="checkbox" />
+              Start automatically when the host starts
+            </label>
+
+            <label class="check-row">
+              <input id="ephemeral" type="checkbox" />
+              Ephemeral container
+            </label>
+
+            <p class="muted">
+              Ephemeral containers may be deleted automatically
+              when stopped. Keep this unchecked for normal use.
+            </p>
+          </section>
+
+          <section class="panel">
+            <div class="actions">
+              <a class="back-link" href="/admin/containers">
+                Cancel
+              </a>
+
+              <button id="refresh" type="button">
+                Refresh limits
+              </button>
+
+              <button id="create" type="submit" disabled>
+                Create container
+              </button>
+            </div>
+
+            <p class="muted">
+              Creation can take time while LXD downloads
+              and starts the container.
+            </p>
+          </section>
+        </form>
+
+        <section id="created-panel" class="panel hidden">
+          <h3>Container created successfully</h3>
+          <p id="created-message"></p>
+          <a id="created-link" href="/">
+            Open container details →
+          </a>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      import {
+        getCurrentUser,
+        getAdminUsers,
+        getAdminHost,
+        getAdminAllocations,
+        createManagedContainer,
+      } from "../../../lib/api.js";
+
+      import {
+        initializeNavigation,
+      } from "../../../lib/navigation.js";
+
+      initializeNavigation();
+
+      const $ = (selector) => document.querySelector(selector);
+      const GiB = 1024 ** 3;
+
+      const form = $("#creation-form");
+      const owner = $("#owner");
+      const network = $("#network");
+      const storage = $("#storage");
+      const createButton = $("#create");
+      const refreshButton = $("#refresh");
+
+      let csrfToken = "";
+      let currentUserId = "";
+      let users = [];
+      let host = null;
+      let allocationReport = null;
+      let busy = false;
+      let ready = false;
+
+      function showNotice(message, success = false) {
+        const element = $("#notice");
+        element.textContent = message;
+        element.className = success
+          ? "notice success"
+          : "notice error";
+      }
+
+      function clearNotice() {
+        $("#notice").textContent = "";
+        $("#notice").className = "notice hidden";
+      }
+
+      function formatGiB(bytes) {
+        return `${(Number(bytes || 0) / GiB).toFixed(2)} GiB`;
+      }
+
+      function userLabel(user) {
+        return user.name
+          ? `${user.name} (${user.email})`
+          : user.email;
+      }
+
+      function fillSelect(select, records, placeholder) {
+        select.replaceChildren(new Option(placeholder, ""));
+
+        for (const item of records) {
+          select.add(new Option(item.label, item.value));
+        }
+      }
+
+      function remainingQuota(user, key) {
+        const quota = Number(user?.quota?.[key] || 0);
+        const allocated = Number(user?.allocation?.[key] || 0);
+
+        return Math.max(0, quota - allocated);
+      }
+
+      function selectedOwner() {
+        return users.find((user) => user.id === owner.value);
+      }
+
+      function selectedPool() {
+        return allocationReport?.storage_pools?.find(
+          (pool) => pool.name === storage.value,
+        );
+      }
+
+      function availableLimits() {
+        const user = selectedOwner();
+        const pool = selectedPool();
+
+        return {
+          ram: Math.max(
+            0,
+            Math.min(
+              remainingQuota(user, "ram_bytes"),
+              Number(allocationReport?.memory?.allocatable_bytes || 0),
+            ),
+          ),
+
+          cpu: Math.max(
+            0,
+            Math.min(
+              remainingQuota(user, "cpu_cores"),
+              Number(allocationReport?.cpu?.allocatable_threads || 0),
+            ),
+          ),
+
+          disk: pool?.disk_quota_verified
+            ? Math.max(
+                0,
+                Math.min(
+                  remainingQuota(user, "disk_bytes"),
+                  Number(pool.allocatable_bytes || 0),
+                ),
+              )
+            : 0,
+        };
+      }
+
+      function quarterGiB(bytes) {
+        return Math.floor(
+          Math.max(0, Number(bytes || 0)) / (GiB / 4),
+        ) / 4;
+      }
+
+      function clampResourceInput(element, maximum, minimum) {
+        element.max = String(maximum);
+
+        if (maximum < minimum) {
+          return;
+        }
+
+        const current = Number(element.value);
+
+        if (
+          !Number.isFinite(current) ||
+          current < minimum ||
+          current > maximum
+        ) {
+          element.value = String(
+            Math.min(maximum, Math.max(minimum, current || minimum)),
+          );
+        }
+      }
+
+      function updateLimits() {
+        const limits = availableLimits();
+        const pool = selectedPool();
+
+        $("#host-disk").textContent =
+          pool?.disk_quota_verified
+            ? `${formatGiB(pool.allocatable_bytes)} (${pool.name})`
+            : "No verified storage pool";
+        const maxRam = quarterGiB(limits.ram);
+        const maxDisk = quarterGiB(limits.disk);
+        const maxCpu = Math.floor(limits.cpu);
+
+        $("#ram-limit").textContent =
+          `Maximum available: ${formatGiB(limits.ram)}`;
+
+        $("#cpu-limit").textContent =
+          `Maximum available: ${maxCpu} core(s)`;
+
+        $("#disk-limit").textContent =
+          `Maximum available: ${formatGiB(limits.disk)}`;
+
+        clampResourceInput($("#ram"), maxRam, 0.25);
+        clampResourceInput($("#cpu"), maxCpu, 1);
+        clampResourceInput($("#disk"), maxDisk, 0.25);
+
+        const blockers = allocationReport?.blockers || [];
+
+        ready =
+          blockers.length === 0 &&
+          Boolean(owner.value) &&
+          Boolean(network.value) &&
+          Boolean(storage.value) &&
+          Boolean(selectedPool()?.disk_quota_verified) &&
+          maxRam >= 0.25 &&
+          maxCpu >= 1 &&
+          maxDisk >= 0.25;
+
+        createButton.disabled = busy || !ready;
+      }
+
+      function setBusy(value) {
+        busy = value;
+        createButton.disabled = value || !ready;
+        refreshButton.disabled = value;
+        owner.disabled = value;
+        network.disabled = value;
+        storage.disabled = value;
+      }
+
+      async function loadData() {
+        const previousOwner = owner.value || currentUserId;
+        const previousNetwork = network.value;
+        const previousStorage = storage.value;
+
+        const [userResponse, hostResponse, allocations] =
+          await Promise.all([
+            getAdminUsers(),
+            getAdminHost(),
+            getAdminAllocations(),
+          ]);
+
+        users = (userResponse.users || []).filter(
+          (user) => user.status === "active",
+        );
+
+        host = hostResponse;
+        allocationReport = allocations;
+
+        fillSelect(
+          owner,
+          users.map((user) => ({
+            value: user.id,
+            label: userLabel(user),
+          })),
+          "Select an active user",
+        );
+
+        owner.value = users.some(
+          (user) => user.id === previousOwner,
+        )
+          ? previousOwner
+          : "";
+
+        fillSelect(
+          network,
+          (host.networks || []).map((item) => ({
+            value: item.name,
+            label: item.name,
+          })),
+          "Select LXD network",
+        );
+
+        network.value = (host.networks || []).some(
+          (item) => item.name === previousNetwork,
+        )
+          ? previousNetwork
+          : host.networks?.[0]?.name || "";
+
+        fillSelect(
+          storage,
+          (allocations.storage_pools || [])
+            .filter((pool) => pool.disk_quota_verified)
+            .map((pool) => ({
+              value: pool.name,
+              label:
+                `${pool.name} — ${formatGiB(pool.allocatable_bytes)} free to allocate`,
+            })),
+          "Select verified storage pool",
+        );
+
+        storage.value = (allocations.storage_pools || []).some(
+          (pool) =>
+            pool.name === previousStorage &&
+            pool.disk_quota_verified,
+        )
+          ? previousStorage
+          : (allocations.storage_pools || []).find(
+              (pool) => pool.disk_quota_verified,
+            )?.name || "";
+
+        $("#host-ram").textContent =
+          formatGiB(allocations.memory?.allocatable_bytes);
+
+        $("#host-cpu").textContent =
+          `${allocations.cpu?.allocatable_threads ?? 0} cores`;
+
+        const blockers = allocations.blockers || [];
+
+        $("#host-status").textContent =
+          blockers.length
+            ? "Blocked"
+            : "Available";
+
+        $("#blockers").textContent =
+          blockers.length
+            ? `Creation blocked: ${blockers.join(", ")}. Reconcile LXD containers first.`
+            : "No host-accounting blockers detected.";
+
+        updateLimits();
+      }
+
+      owner.addEventListener("change", updateLimits);
+      storage.addEventListener("change", updateLimits);
+      network.addEventListener("change", updateLimits);
+
+      refreshButton.addEventListener("click", async () => {
+        setBusy(true);
+        clearNotice();
+
+        try {
+          await loadData();
+          showNotice("Resource limits refreshed.", true);
+        } catch (error) {
+          ready = false;
+          showNotice(error?.message || "Unable to refresh resource data.");
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (busy || !ready || !csrfToken) {
+          return;
+        }
+
+        clearNotice();
+
+        if (!form.reportValidity()) {
+          return;
+        }
+
+        const name = $("#name").value.trim();
+
+        if (
+          !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(name)
+        ) {
+          showNotice(
+            "Use lowercase letters, numbers and hyphens for the container name.",
+          );
+          return;
+        }
+
+        const ramBytes = Math.round(
+          Number($("#ram").value) * GiB,
+        );
+
+        const diskBytes = Math.round(
+          Number($("#disk").value) * GiB,
+        );
+
+        const cpuCores = Number($("#cpu").value);
+        const allowance = Number($("#allowance").value);
+
+        const amounts = availableLimits();
+
+        if (
+          !Number.isSafeInteger(ramBytes) ||
+          !Number.isSafeInteger(diskBytes) ||
+          !Number.isSafeInteger(cpuCores) ||
+          !Number.isSafeInteger(allowance) ||
+          ramBytes <= 0 ||
+          diskBytes <= 0 ||
+          cpuCores <= 0 ||
+          allowance < 1 ||
+          allowance > 100 ||
+          ramBytes > amounts.ram ||
+          diskBytes > amounts.disk ||
+          cpuCores > amounts.cpu
+        ) {
+          showNotice(
+            "Requested resources exceed the available limits or contain invalid values.",
+          );
+          return;
+        }
+
+        const payload = {
+          name,
+          owner_id: owner.value,
+          image_alias: $("#image").value,
+          ram_limit_bytes: ramBytes,
+          cpu_limit_cores: cpuCores,
+          cpu_allowance_percent: allowance,
+          disk_limit_bytes: diskBytes,
+          storage_pool: storage.value,
+          network_name: network.value,
+          ephemeral: $("#ephemeral").checked,
+          autostart: $("#autostart").checked,
+          description: $("#description").value.trim(),
+        };
+
+        setBusy(true);
+        createButton.textContent = "Creating...";
+        showNotice(
+          "Creating and starting the container. Please wait...",
+          true,
+        );
+
+        try {
+          const result = await createManagedContainer(
+            payload,
+            csrfToken,
+          );
+
+          $("#created-message").textContent =
+            `${result.name || name} was created. Status: ${result.status || "Unknown"}.`;
+
+          $("#created-link").href =
+            `/container?id=${encodeURIComponent(result.id)}`;
+
+          $("#created-panel").classList.remove("hidden");
+          showNotice("Container created successfully.", true);
+
+          try {
+            await loadData();
+          } catch (refreshError) {
+            console.warn(
+              "Created successfully, but unable to refresh limits:",
+              refreshError,
+            );
+          }
+        } catch (error) {
+          ready = false;
+          showNotice(
+            error?.message ||
+            "Container creation failed. Check the server before retrying.",
+          );
+        } finally {
+          createButton.textContent = "Create container";
+          setBusy(false);
+        }
+      });
+
+      async function initialize() {
+        try {
+          const response = await getCurrentUser();
+          const user = response.user || response;
+
+          if (user.role !== "admin") {
+            ready = false;
+            showNotice("403 — Administrator access is required.");
+            return;
+          }
+
+          currentUserId = user.id;
+          csrfToken = response.csrf_token;
+
+          if (!csrfToken) {
+            throw new Error("CSRF token unavailable.");
+          }
+
+          $("#account").replaceChildren();
+
+          const name = document.createElement("strong");
+          name.textContent = user.name || user.email;
+
+          const role = document.createElement("span");
+          role.textContent = "Admin";
+
+          $("#account").append(name, role);
+
+          setBusy(true);
+          await loadData();
+          setBusy(false);
+        } catch (error) {
+          ready = false;
+          setBusy(false);
+
+          if (error?.status === 401) {
+            window.location.replace("/login");
+            return;
+          }
+
+          showNotice(
+            error?.message ||
+            "Unable to load container creation data.",
+          );
+        }
+      }
+
+      initialize();
+    </script>
+
+    <style is:global>
+      :root {
+        font-family: Inter, system-ui, sans-serif;
+        color: #e5e7eb;
+        background: #080d16;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: #080d16;
+        min-height: 100vh;
+      }
+
+      button, input, select { font: inherit; }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 36px;
+        padding: 28px 22px;
+        background: #0d1420;
+        border-right: 1px solid #1f2937;
+      }
+
+      .sidebar h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      nav { flex: 1; }
+
+      .nav-item {
+        display: block;
+        padding: 11px 12px;
+        text-decoration: none;
+        color: #94a3b8;
+        border-radius: 8px;
+      }
+
+      .nav-item.active {
+        color: #f9fafb;
+        background: #172033;
+      }
+
+      .account {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding-top: 18px;
+        border-top: 1px solid #1f2937;
+      }
+
+      .account span {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+
+      main {
+        padding: 30px;
+        min-width: 0;
+      }
+
+      .page-header h2 {
+        margin: 10px 0 5px;
+        font-size: 28px;
+      }
+
+      .page-header p, .muted {
+        color: #94a3b8;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .back-link {
+        color: #93c5fd;
+        text-decoration: none;
+        font-size: 13px;
+      }
+
+      .panel {
+        margin-top: 22px;
+        padding: 20px;
+        background: #101826;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+      }
+
+      .panel h3 { margin: 0 0 14px; }
+
+      .stats, .form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .stats > div {
+        padding: 14px;
+        background: #0b111c;
+        border-radius: 8px;
+      }
+
+      .stats span {
+        display: block;
+        color: #94a3b8;
+        font-size: 12px;
+      }
+
+      .stats strong {
+        display: block;
+        margin-top: 6px;
+      }
+
+      label {
+        display: block;
+        color: #cbd5e1;
+        font-size: 13px;
+      }
+
+      label input:not([type="checkbox"]),
+      label select {
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+        padding: 11px;
+        color: #e5e7eb;
+        background: #080d16;
+        border: 1px solid #334155;
+        border-radius: 8px;
+      }
+
+      label small {
+        display: block;
+        margin-top: 5px;
+        color: #94a3b8;
+        font-size: 11px;
+      }
+
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 12px 0;
+      }
+
+      .check-row input { width: auto; }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 14px;
+      }
+
+      button {
+        padding: 10px 14px;
+        background: #22304a;
+        color: #e5e7eb;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+      }
+
+      .notice {
+        margin-top: 18px;
+        padding: 12px;
+        border-radius: 8px;
+      }
+
+      .notice.error {
+        color: #fecaca;
+        background: #2b1217;
+        border: 1px solid #7f1d1d;
+      }
+
+      .notice.success {
+        color: #bbf7d0;
+        background: #102c27;
+        border: 1px solid #14532d;
+      }
+
+      .hidden { display: none; }
+
+      @media (max-width: 1000px) {
+        .form-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 700px) {
+        .layout { grid-template-columns: 1fr; }
+        .stats, .form-grid { grid-template-columns: 1fr; }
+        main { padding: 18px; }
+      }
+
+      .stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      @media (max-width: 1100px) {
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 700px) {
+        .stats {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </body>
+</html>

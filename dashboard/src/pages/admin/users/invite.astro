@@ -1,0 +1,636 @@
+
+---
+const title = "Invite User — Hobby Server Monitor";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h1>Hobby Server<br />Monitor</h1>
+
+        <nav aria-label="Main navigation">
+          <a href="/" class="nav-item">Overview</a>
+          <a href="/container" class="nav-item">
+            Container details
+          </a>
+          <a href="/admin/containers" class="nav-item">
+            Manage containers
+          </a>
+          <a href="/admin/users" class="nav-item active">
+            Users
+          </a>
+        </nav>
+
+        <div id="account" class="account">
+          Loading account...
+        </div>
+      </aside>
+
+      <main>
+        <header>
+          <a class="back-link" href="/admin/users">
+            ← Back to Users
+          </a>
+
+          <h2>Invite a user</h2>
+          <p class="muted">
+            Register a Google account and assign its initial
+            resource quotas.
+          </p>
+        </header>
+
+        <div
+          id="notice"
+          class="notice hidden"
+          role="status"
+          aria-live="polite"
+        ></div>
+
+        <form id="invite-form" class="panel">
+          <h3>Account details</h3>
+
+          <label for="email">Google account email</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="person@example.com"
+            maxlength="254"
+            autocomplete="off"
+            required
+          />
+
+          <p class="muted">
+            The invitation must match the email address verified
+            by Google during the user's first sign-in.
+          </p>
+
+          <h3>Initial resource quotas</h3>
+
+          <p class="muted">
+            Quotas are limited by total host capacity.
+            They do not reserve resources immediately.
+          </p>
+
+          <div class="form-grid">
+            <div>
+              <label for="ram">RAM quota (GiB)</label>
+              <input
+                id="ram"
+                type="number"
+                min="0"
+                step="0.25"
+                value="0"
+                required
+              />
+              <small id="ram-maximum">Loading...</small>
+            </div>
+
+            <div>
+              <label for="cpu">CPU quota (cores)</label>
+              <input
+                id="cpu"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+                required
+              />
+              <small id="cpu-maximum">Loading...</small>
+            </div>
+
+            <div>
+              <label for="disk">Disk quota (GiB)</label>
+              <input
+                id="disk"
+                type="number"
+                min="0"
+                step="0.25"
+                value="0"
+                required
+              />
+              <small id="disk-maximum">Loading...</small>
+            </div>
+          </div>
+
+          <div class="actions">
+            <a class="back-link" href="/admin/users">
+              Cancel
+            </a>
+
+            <button
+              id="submit-button"
+              type="submit"
+              disabled
+            >
+              Create invitation
+            </button>
+          </div>
+        </form>
+
+        <section id="success-panel" class="panel hidden">
+          <h3>Invitation created</h3>
+
+          <p>
+            Account: <strong id="invited-email"></strong>
+          </p>
+
+          <p>
+            Status: <strong>Invited</strong>
+          </p>
+
+          <p class="muted">
+            Ask the user to open the Hobby Server Monitor
+            sign-in page and authenticate with this exact
+            Google account.
+          </p>
+
+          <p class="muted">
+            This application has registered the invitation
+            but has not sent an email.
+          </p>
+
+          <div class="actions">
+            <a href="/admin/users">View users</a>
+            <a href="/admin/containers">
+              Manage container access
+            </a>
+            <a href="/admin/users/invite">
+              Invite another
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      import {
+        getAdminHost,
+        getCurrentUser,
+        inviteUser,
+      } from "../../../lib/api.js";
+
+      import {
+        initializeNavigation,
+      } from "../../../lib/navigation.js";
+
+      initializeNavigation();
+
+      const $ = (selector) => document.querySelector(selector);
+      const GiB = 1024 ** 3;
+
+      const form = $("#invite-form");
+      const submitButton = $("#submit-button");
+
+      let csrfToken = null;
+      let hardwareLimits = null;
+      let submitting = false;
+
+      function showNotice(message, kind = "error") {
+        const notice = $("#notice");
+        notice.textContent = message;
+        notice.className = `notice ${kind}`;
+      }
+
+      function clearNotice() {
+        $("#notice").textContent = "";
+        $("#notice").className = "notice hidden";
+      }
+
+      function gib(bytes) {
+        return Number(bytes) / GiB;
+      }
+
+      function quarterGiBMaximum(bytes) {
+        return Math.floor(gib(bytes) * 4) / 4;
+      }
+
+      function hardwareQuotaLimits(host) {
+        const pools = (host.storage_pools || [])
+          .filter((pool) => pool.disk_quota_verified);
+
+        return {
+          ram_bytes: Number(host.memory.total_bytes),
+          cpu_cores: Number(host.cpu.logical_threads),
+          disk_bytes: Math.max(
+            0,
+            ...pools.map((pool) => Number(pool.total_bytes)),
+          ),
+        };
+      }
+
+      function setMaximum(selector, maximum, label) {
+        const input = $(selector);
+        input.max = String(maximum);
+
+        const current = Number(input.value);
+
+        if (!Number.isFinite(current) || current > maximum) {
+          input.value = String(maximum);
+        }
+
+        $(label).textContent = `Hardware maximum: ${maximum}`;
+      }
+
+      function showHardwareLimits(limits) {
+        setMaximum(
+          "#ram",
+          quarterGiBMaximum(limits.ram_bytes),
+          "#ram-maximum",
+        );
+
+        $("#ram-maximum").textContent += " GiB";
+
+        setMaximum(
+          "#cpu",
+          limits.cpu_cores,
+          "#cpu-maximum",
+        );
+
+        $("#cpu-maximum").textContent += " logical threads";
+
+        setMaximum(
+          "#disk",
+          quarterGiBMaximum(limits.disk_bytes),
+          "#disk-maximum",
+        );
+
+        $("#disk-maximum").textContent +=
+          " GiB (largest verified storage pool)";
+      }
+
+      function readQuota(selector, maximum, isCPU = false) {
+        const input = $(selector);
+        const quantity = Number(input.value);
+
+        if (
+          !Number.isFinite(quantity) ||
+          quantity < 0 ||
+          quantity > Number(input.max)
+        ) {
+          throw new Error(
+            "Requested quota exceeds the hardware limit.",
+          );
+        }
+
+        const value = isCPU
+          ? quantity
+          : Math.round(quantity * GiB);
+
+        if (
+          !Number.isSafeInteger(value) ||
+          value < 0 ||
+          value > maximum
+        ) {
+          throw new Error("Invalid quota value.");
+        }
+
+        return value;
+      }
+
+      async function initialize() {
+        try {
+          const session = await getCurrentUser();
+
+          if (session.user?.role !== "admin") {
+            showNotice("403 — Administrator access required.");
+            return;
+          }
+
+          csrfToken = session.csrf_token;
+
+          if (!csrfToken) {
+            throw new Error("CSRF token unavailable.");
+          }
+
+          const account = $("#account");
+          account.replaceChildren();
+
+          const name = document.createElement("strong");
+          name.textContent =
+            session.user.name || session.user.email;
+
+          const role = document.createElement("span");
+          role.textContent = "Admin";
+
+          account.append(name, role);
+
+          const host = await getAdminHost();
+
+          hardwareLimits = hardwareQuotaLimits(host);
+
+          if (
+            !Number.isSafeInteger(hardwareLimits.ram_bytes) ||
+            !Number.isSafeInteger(hardwareLimits.cpu_cores) ||
+            !Number.isSafeInteger(hardwareLimits.disk_bytes) ||
+            hardwareLimits.ram_bytes <= 0 ||
+            hardwareLimits.cpu_cores <= 0 ||
+            hardwareLimits.disk_bytes < 0
+          ) {
+            throw new Error("Invalid host capacity information.");
+          }
+
+          showHardwareLimits(hardwareLimits);
+
+          // Safe initial suggestions, capped by hardware.
+          $("#ram").value = Math.min(
+            1,
+            quarterGiBMaximum(hardwareLimits.ram_bytes),
+          );
+
+          $("#cpu").value = Math.min(
+            1,
+            hardwareLimits.cpu_cores,
+          );
+
+          $("#disk").value = Math.min(
+            2,
+            quarterGiBMaximum(hardwareLimits.disk_bytes),
+          );
+
+          submitButton.disabled = false;
+        } catch (error) {
+          if (error?.status === 401) {
+            window.location.replace("/login");
+            return;
+          }
+
+          showNotice(
+            error?.message ||
+              "Unable to retrieve hardware quota limits.",
+          );
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (
+          submitting ||
+          !hardwareLimits ||
+          !csrfToken ||
+          !form.reportValidity()
+        ) {
+          return;
+        }
+
+        clearNotice();
+
+        let payload;
+
+        try {
+          const email = $("#email").value.trim();
+
+          if (!email || email.length > 254) {
+            throw new Error("Enter a valid Google account email.");
+          }
+
+          payload = {
+            email,
+
+            quota_ram_bytes: readQuota(
+              "#ram",
+              hardwareLimits.ram_bytes,
+            ),
+
+            quota_cpu_cores: readQuota(
+              "#cpu",
+              hardwareLimits.cpu_cores,
+              true,
+            ),
+
+            quota_disk_bytes: readQuota(
+              "#disk",
+              hardwareLimits.disk_bytes,
+            ),
+          };
+        } catch (error) {
+          showNotice(error.message);
+          return;
+        }
+
+        submitting = true;
+        submitButton.disabled = true;
+        submitButton.textContent = "Creating invitation...";
+
+        try {
+          const result = await inviteUser(
+            payload,
+            csrfToken,
+          );
+
+          $("#invited-email").textContent = result.email;
+
+          $("#success-panel").classList.remove("hidden");
+          form.classList.add("hidden");
+
+          showNotice(
+            "The invitation was registered successfully.",
+            "success",
+          );
+        } catch (error) {
+          showNotice(
+            error?.message ||
+              "Unable to create invitation.",
+          );
+
+          submitButton.disabled = false;
+        } finally {
+          submitting = false;
+          submitButton.textContent = "Create invitation";
+        }
+      });
+
+      initialize();
+    </script>
+
+    <style is:global>
+      :root {
+        font-family: Inter, system-ui, sans-serif;
+        color: #e5e7eb;
+        background: #080d16;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: #080d16;
+        min-height: 100vh;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        padding: 28px 22px;
+        background: #0d1420;
+        border-right: 1px solid #1f2937;
+      }
+
+      .sidebar h1 {
+        font-size: 20px;
+        margin: 0;
+      }
+
+      .sidebar nav { flex: 1; }
+
+      .nav-item {
+        display: block;
+        padding: 11px 12px;
+        color: #94a3b8;
+        border-radius: 8px;
+        text-decoration: none;
+      }
+
+      .nav-item.active {
+        background: #172033;
+        color: #f9fafb;
+      }
+
+      .account {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border-top: 1px solid #1f2937;
+        padding-top: 16px;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .account span, .muted, small {
+        color: #94a3b8;
+      }
+
+      main {
+        padding: 32px;
+        min-width: 0;
+      }
+
+      h2 { margin: 12px 0; }
+      h3 { margin-top: 0; }
+
+      .back-link {
+        color: #93c5fd;
+        text-decoration: none;
+      }
+
+      .panel {
+        margin-top: 24px;
+        background: #101826;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 24px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 20px;
+      }
+
+      label {
+        display: block;
+        color: #cbd5e1;
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      input {
+        display: block;
+        width: 100%;
+        padding: 11px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        background: #080d16;
+        color: #e5e7eb;
+        font: inherit;
+      }
+
+      small {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+      }
+
+      .muted {
+        line-height: 1.6;
+        font-size: 13px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 16px;
+        margin-top: 28px;
+      }
+
+      .actions a {
+        color: #93c5fd;
+        text-decoration: none;
+      }
+
+      button {
+        padding: 11px 16px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        background: #22304a;
+        color: #e5e7eb;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .notice {
+        margin-top: 20px;
+        padding: 12px;
+        border-radius: 8px;
+      }
+
+      .notice.error {
+        color: #fecaca;
+        border: 1px solid #7f1d1d;
+        background: #2b1217;
+      }
+
+      .notice.success {
+        color: #bbf7d0;
+        border: 1px solid #14532d;
+        background: #102c27;
+      }
+
+      .hidden { display: none !important; }
+
+      @media (max-width: 900px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .layout { grid-template-columns: minmax(0, 1fr); }
+        main { padding: 22px; }
+      }
+    </style>
+  </body>
+</html>
