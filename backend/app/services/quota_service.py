@@ -3,6 +3,7 @@ import falcon
 
 from app.db.connection import get_connection
 
+from app.services.host_service import HostService
 
 MAX_INTEGER = 2**63 - 1
 
@@ -200,3 +201,26 @@ class QuotaService:
             "allocated": allocated,
             "remaining": remaining,
         }
+
+def get_hardware_quota_limits(actor):
+    """
+    Maximum quotas based on total host capacity,
+    not currently available capacity.
+    """
+
+    host = HostService().get_overview(actor)
+
+    verified_pools = [
+        pool
+        for pool in host["storage_pools"]
+        if pool["disk_quota_verified"]
+    ]
+
+    return {
+        "ram_bytes": host["memory"]["total_bytes"],
+        "cpu_cores": host["cpu"]["logical_threads"],
+        "disk_bytes": max(
+            (pool["total_bytes"] for pool in verified_pools),
+            default=0,
+        ),
+    }

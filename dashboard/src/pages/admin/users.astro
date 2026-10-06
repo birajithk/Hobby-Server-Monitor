@@ -230,6 +230,7 @@ const title =
         revokeUser,
         updateUserQuota,
         updateUserRole,
+        getAdminHost,
       } from "../../lib/api.js";
 
 
@@ -567,6 +568,23 @@ const title =
         `;
       }
 
+      let hardwareLimits = null;
+
+      function getHardwareLimits(host) {
+        const verifiedPools = (host.storage_pools || [])
+          .filter((pool) => pool.disk_quota_verified);
+
+        return {
+          ram_bytes: Number(host.memory.total_bytes),
+
+          cpu_cores: Number(host.cpu.logical_threads),
+
+          disk_bytes: Math.max(
+            0,
+            ...verifiedPools.map((pool) => Number(pool.total_bytes)),
+          ),
+        };
+      }
 
       function renderUsers(
         users,
@@ -751,6 +769,8 @@ const title =
 
                   <div class="editor-grid">
 
+                    <div class="quota-error" role="alert" hidden></div>
+
                     <label>
 
                       Role
@@ -802,6 +822,7 @@ const title =
                         class="quota-ram"
                         type="number"
                         min="0"
+                        max="${hardwareLimits.ram_bytes / 1024 ** 3}"
                         step="0.25"
                         value="${
                           bytesToGiB(
@@ -815,7 +836,7 @@ const title =
                             : ""
                         }
                       />
-
+                      <small>Hardware maximum: ${formatBytes(hardwareLimits.ram_bytes)}</small>
                     </label>
 
 
@@ -827,6 +848,7 @@ const title =
                         class="quota-cpu"
                         type="number"
                         min="0"
+                        max="${hardwareLimits.cpu_cores}"
                         step="1"
                         value="${
                           escapeHtml(
@@ -840,7 +862,7 @@ const title =
                             : ""
                         }
                       />
-
+                      <small>Hardware maximum: ${hardwareLimits.cpu_cores} logical threads</small>
                     </label>
 
 
@@ -852,6 +874,7 @@ const title =
                         class="quota-disk"
                         type="number"
                         min="0"
+                        max="${hardwareLimits.disk_bytes / 1024 ** 3}"
                         step="0.25"
                         value="${
                           bytesToGiB(
@@ -865,7 +888,7 @@ const title =
                             : ""
                         }
                       />
-
+                      <small>Hardware maximum: ${formatBytes(hardwareLimits.disk_bytes)}</small>
                     </label>
 
                   </div>
@@ -1075,6 +1098,45 @@ const title =
 
         try {
 
+          const quotaError = card.querySelector(".quota-error");
+
+          if (!quotaError) {
+            return;
+          }
+
+          // Clear the previous error
+          quotaError.textContent = "";
+          quotaError.hidden = true;
+
+          for (const selector of [
+            ".quota-ram",
+            ".quota-cpu",
+            ".quota-disk",
+          ]) {
+            const input = card.querySelector(selector);
+
+            if (!input) {
+              quotaError.textContent =
+                "A quota input is missing.";
+
+              quotaError.hidden = false;
+              return;
+            }
+
+            if (
+              input.max !== "" &&
+              Number(input.value) > Number(input.max)
+            ) {
+              quotaError.textContent =
+                "Quota cannot exceed the host's total hardware capacity.";
+
+              quotaError.hidden = false;
+
+              input.focus();
+              return;
+            }
+          }
+
           await updateUserQuota(
             userId,
             {
@@ -1181,8 +1243,12 @@ const title =
 
         try {
 
-          const response =
-            await getAdminUsers();
+          const [response, host] = await Promise.all([
+            getAdminUsers(),
+            getAdminHost(),
+          ]);
+
+          hardwareLimits = getHardwareLimits(host);
 
           const users =
             response?.users ||
@@ -2136,6 +2202,22 @@ const title =
         100%;
     }
 
+  }
+
+  .quota-error {
+    grid-column: 1 / -1;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border: 1px solid #ef4444;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .quota-error[hidden] {
+    display: none;
   }
 
 </style>

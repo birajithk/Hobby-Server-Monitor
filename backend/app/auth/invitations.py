@@ -7,7 +7,7 @@ import falcon
 from app.auth.identity import normalize_email
 from app.auth.sessions import utc_now
 from app.db.connection import get_connection
-
+from app.services.quota_service import get_hardware_quota_limits
 
 class InvitationResource:
     """Allow Admins to invite Container Users."""
@@ -49,6 +49,27 @@ class InvitationResource:
                 )
 
             quotas[field] = value
+
+        hardware_limits = get_hardware_quota_limits(
+            req.context.user
+        )
+
+        quota_mapping = {
+            "quota_ram_bytes": "ram_bytes",
+            "quota_cpu_cores": "cpu_cores",
+            "quota_disk_bytes": "disk_bytes",
+        }
+
+        for quota_field, resource in quota_mapping.items():
+
+            if quotas[quota_field] > hardware_limits[resource]:
+                raise falcon.HTTPConflict(
+                    title="Quota exceeds hardware capacity",
+                    description=(
+                        f"{quota_field} exceeds "
+                        "the host's hardware limit."
+                    ),
+                )
 
         user_id = str(uuid.uuid4())
         now = utc_now()

@@ -9,6 +9,7 @@ from app.services.authorization import require_admin
 from app.services.quota_service import (
     MAX_INTEGER,
     get_usage,
+    get_hardware_quota_limits,
 )
 from app.services.allocation_lock import (
     allocation_lock,
@@ -839,6 +840,8 @@ class UserAdminService:
 
         with allocation_lock():
 
+            hardware_limits = get_hardware_quota_limits(actor)
+
             with get_connection() as connection:
 
                 connection.execute(
@@ -898,6 +901,19 @@ class UserAdminService:
                                     "current allocation."
                                 ),
                             )
+                        )
+
+                for resource, value in requested.items():
+
+                    maximum = hardware_limits[resource]
+
+                    if value > maximum:
+                        raise falcon.HTTPConflict(
+                            title="Quota exceeds hardware capacity",
+                            description=(
+                                f"{resource} quota cannot exceed "
+                                f"the hardware maximum of {maximum}."
+                            ),
                         )
 
                 now = utc_now()

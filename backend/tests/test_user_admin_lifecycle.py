@@ -511,6 +511,42 @@ class UserAdminLifecycleTests(
             row["details"],
         )
 
+    def test_cpu_quota_uses_total_hardware_not_available(self):
+        gib = 1024 ** 3
+
+        hardware_limits = {
+            "ram_bytes": 16 * gib,
+            "cpu_cores": 16,
+            "disk_bytes": 100 * gib,
+        }
+
+        with patch(
+            "app.services.user_admin_service.get_hardware_quota_limits",
+            return_value=hardware_limits,
+        ):
+            valid = self.service.update_quota(
+                self.admin,
+                "user-1",
+                {
+                    "quota_ram_bytes": 2 * gib,
+                    "quota_cpu_cores": 16,
+                    "quota_disk_bytes": 5 * gib,
+                },
+            )
+
+            self.assertEqual(valid["quota_cpu_cores"], 16)
+
+            with self.assertRaises(falcon.HTTPConflict):
+                self.service.update_quota(
+                    self.admin,
+                    "user-1",
+                    {
+                        "quota_ram_bytes": 2 * gib,
+                        "quota_cpu_cores": 17,
+                        "quota_disk_bytes": 5 * gib,
+                    },
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
