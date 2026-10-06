@@ -1,0 +1,91 @@
+---
+const title = "Sign in — Hobby Server Monitor";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <main class="login-card">
+      <div class="eyebrow">Server management</div>
+      <h1>Hobby Server Monitor</h1>
+
+      <p>
+        Sign in with your authorized Google account
+        to monitor and manage containers.
+      </p>
+
+      <a class="google-button" href="/auth/google/login">
+        Sign in with Google
+      </a>
+
+      <p id="login-message" role="status" aria-live="polite"></p>
+    </main>
+
+    <script>
+      import { getCurrentUser } from "../lib/api.js";
+
+      getCurrentUser()
+        .then(() => window.location.replace("/"))
+        .catch((error) => {
+          if (error?.status !== 401) {
+            document.querySelector("#login-message").textContent =
+              error?.message || "Unable to check login status.";
+          }
+        });
+    </script>
+
+    <style>
+      :global(body) {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background: #080d16;
+        color: #e5e7eb;
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      .login-card {
+        width: min(100%, 430px);
+        padding: 35px;
+        border: 1px solid #293446;
+        border-radius: 16px;
+        background: #101826;
+      }
+
+      .eyebrow {
+        color: #7dd3fc;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+
+      h1 { font-size: 28px; margin: 12px 0; }
+
+      p { color: #94a3b8; line-height: 1.6; }
+
+      .google-button {
+        display: block;
+        margin-top: 26px;
+        padding: 13px;
+        border-radius: 8px;
+        background: #e5e7eb;
+        color: #111827;
+        text-align: center;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .google-button:hover { background: white; }
+      .google-button:focus-visible { outline: 3px solid #7dd3fc; }
+    </style>
+  </body>
+</html>

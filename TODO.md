@@ -215,9 +215,9 @@ A task is complete only when its implementation has been verified.
 - [x] Initialize Astro.
 - [x] Configure API access.
 - [x] Implement the shared page layout.
-- [ ] Implement the Google login page.
+- [x] Implement the Google login page.
 - [x] Implement authenticated navigation.
-- [ ] Implement logout.
+- [x] Implement logout.
 - [x] Implement role-specific navigation.
 - [x] Implement the Admin overview.
 - [ ] Implement the Container User overview.

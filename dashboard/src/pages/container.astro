@@ -104,6 +104,14 @@ const title =
                 </h2>
               </div>
 
+              <div class="container-switcher">
+                <label for="container-switch">Switch container</label>
+
+                <select id="container-switch" disabled>
+                  <option value="">Loading containers...</option>
+                </select>
+              </div>
+
               <span
                 id="container-status"
                 class="status-badge"
@@ -1256,6 +1264,9 @@ const title =
 
             return;
           }
+          loadContainerSwitcher().catch((error) => {
+            console.error("Unable to load container switcher:", error);
+          });
 
           showError(
             error?.message ||
@@ -1435,8 +1446,58 @@ const title =
         }
       }
 
+      async function loadContainerSwitcher() {
+        const select = document.querySelector("#container-switch");
+
+        const response = await getContainers();
+
+        const containers = (
+          Array.isArray(response)
+            ? response
+            : response?.containers || []
+        ).filter(
+          (item) =>
+            typeof item?.id === "string" &&
+            item.id.length > 0 &&
+            item.managed !== false &&
+            item.is_managed !== false
+        );
+
+        select.replaceChildren();
+
+        for (const container of containers) {
+          select.add(
+            new Option(
+              container.lxd_name ||
+                container.name ||
+                container.id,
+              container.id,
+            ),
+          );
+        }
+
+        if (containers.some((item) => item.id === containerId)) {
+          select.value = containerId;
+        }
+
+        select.disabled = containers.length < 2;
+
+        select.addEventListener("change", () => {
+          if (!select.value) return;
+
+          window.location.href =
+            `/container?id=${encodeURIComponent(select.value)}`;
+        });
+      }
+
       openContainerPage();
 
+    </script>
+
+    <script>
+      import { initializeNavigation } from "../lib/navigation.js";
+
+      initializeNavigation();
     </script>
 
   </body>
@@ -2138,6 +2199,31 @@ const title =
         auto;
     }
 
+  }
+
+  .container-switcher {
+    margin-top: 12px;
+  }
+
+  .container-switcher label {
+    display: block;
+    margin-bottom: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+
+  .container-switcher select {
+    width: min(100%, 300px);
+    padding: 9px 12px;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    background: #101826;
+    color: #e5e7eb;
+    font: inherit;
+  }
+
+  .container-switcher select:disabled {
+    opacity: 0.7;
   }
 
 </style>

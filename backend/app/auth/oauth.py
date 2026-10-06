@@ -399,4 +399,4 @@ class GoogleCallbackResource:
         # The Astro dashboard is not implemented yet.
         # For now, show the authenticated /api/me response.
         resp.status = falcon.HTTP_302
-        resp.location = "/api/me"
+        resp.location = "/"
