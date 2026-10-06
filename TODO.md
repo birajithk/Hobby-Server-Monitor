@@ -1,4 +1,3 @@
-
 # Hobby Server Monitor — Implementation TODO
 
 Repository: https://github.com/birajithk/Hobby-Server-Monitor
@@ -11,7 +10,20 @@ Priority:
 - P1: Verification, deployment and documentation.
 - P2: Optional enhancements and bonuses.
 
-A task is complete only when its implementation has been verified.
+A task is complete only when its implementation has been verified. Checkmarks below reflect the merged source, existing test coverage, and the manual checks reported during development. An unchecked task is **not yet verified as complete**, even where part of the backend already exists. This checklist is not a claim that all end-to-end or deployment tests have passed.
+
+## Immediate next milestone — Complete the Admin dashboard (P0)
+
+- [ ] Add a read-only, Admin-authorized endpoint to get one managed container's saved RAM, CPU, CPU allowance, disk and storage-pool limits for form prefill. (The existing resources endpoint currently supports PATCH only.)
+- [ ] Implement the Admin resource-limit editing form with exact existing API fields and current values.
+- [ ] Show per-user remaining quotas and per-host remaining allocation budget while editing; preserve backend validation and prevent unsupported disk shrinkage.
+- [ ] Test real RAM/CPU/allowance/disk-increase changes on a disposable managed LXD container; verify LXD values, SQLite state, metrics, and error handling on drift or quota failure.
+- [ ] Add an Admin host-allocation overview showing total, reserved, allocated and allocatable RAM/CPU and per-verified-pool disk budgets.
+- [ ] Show managed/unmanaged counts and allocation blockers; explain when new allocations are disabled and provide a manual refresh.
+- [ ] Verify the non-root Container User terminal identity in newly created `hsm-test-02` (not only the previously provisioned `hsm-quota-01`). If missing, implement a safe provisioning flow before treating new-container terminal support as complete.
+- [ ] Verify the Admin and Container User UI on desktop and mobile and the actual API access restrictions.
+
+**Next phase gate:** After the Admin resource controls and host allocation overview are tested, announce **“deployment, security verification, performance measurements, and final documentation.”** Do not start that phase before the above P0 dashboard work and the new-container terminal check have been addressed.
 
 ## Phase 0 — Project Foundation
 
@@ -23,6 +35,7 @@ A task is complete only when its implementation has been verified.
 - [x] Configure development-account LXD access.
 - [x] Verify the default LXD profile and network.
 - [x] Create the feat/project-foundation branch.
+- [x] Merge the project-foundation implementation into `main` and push the merged changes.
 - [x] Configure .gitignore to exclude .env and generated data.
 - [x] Create docs/PROJECT_SPEC.md.
 - [x] Create docs/DECISIONS.md.
@@ -35,7 +48,7 @@ A task is complete only when its implementation has been verified.
 - [x] Inspect available storage drivers.
 - [x] Create a quota-capable LXD storage pool.
 - [x] Verify that container disk limits are enforced.
-- [ ] Configure the default profile to use the chosen pool.
+- [ ] Decide whether the default LXD profile needs changing; the application currently creates containers with explicit root-disk and NIC devices, avoiding inherited profile devices.
 - [x] Verify LXD networking.
 - [x] Discover supported Ubuntu image aliases.
 - [x] Create an unprivileged development container.
@@ -82,10 +95,13 @@ A task is complete only when its implementation has been verified.
 - [x] Implement session expiration.
 - [x] Implement logout and session invalidation.
 - [x] Implement user-revocation session invalidation.
+- [x] Add Admin-authorized reactivation of revoked Container Users with audit entries; require Google sign-in again.
+- [x] Ensure reactivation does not automatically restore old container-access grants.
+- [x] Show a generic access-denied message in the Astro login page for rejected Google logins.
 - [x] Implement CSRF protection.
 - [x] Implement centralized authentication middleware.
-- [ ] Implement centralized permission rules.
-- [ ] Implement service-layer authorization.
+- [x] Implement centralized permission checks in authentication middleware and authorization helpers.
+- [x] Enforce service-layer Admin and container-access authorization (including privileged write operations).
 - [x] Test unauthorized and unauthenticated requests.
 - [x] Prevent removal of the last active Admin.
 - [x] Implement reusable container-level authorization for read-only APIs.
@@ -105,7 +121,7 @@ A task is complete only when its implementation has been verified.
 - [x] Implement network and profile discovery.
 - [x] Implement the Admin-only read-only host information API.
 - [x] Test host discovery, authorization and LXD failure handling.
-- [ ] Implement image and alias discovery.
+- [ ] Implement validated image/alias discovery if needed for the required creation UI; the currently approved image is intentionally restricted to Ubuntu 24.04.
 - [x] Implement container listing.
 - [x] Implement container state and metadata retrieval.
 - [x] Implement stable application identifiers.
@@ -119,7 +135,7 @@ A task is complete only when its implementation has been verified.
 - [x] Verify resource-limit updates against real LXD containers.
 - [x] Reject resource updates when LXD and application accounting have drifted.
 - [x] Prevent disk-limit reduction in the initial resource-update policy.
-- [ ] Implement container renaming where supported.
+- [ ] Implement container renaming only if required and safely supported; otherwise explicitly document this as deferred.
 - [x] Implement deletion with appropriate cleanup.
 - [x] Implement audit records for sensitive operations.
 - [ ] Implement appropriate LXD operation timeouts.
@@ -131,7 +147,10 @@ A task is complete only when its implementation has been verified.
 - [x] Implement user listing and details.
 - [x] Implement role changes.
 - [x] Implement user revocation.
+- [x] Implement Admin reactivation of revoked Container Users while retaining account and audit history.
 - [x] Implement resource-quota configuration.
+- [x] Enforce quota maxima from discovered total host RAM, logical CPU threads and the largest verified LXD storage-pool capacity (not current free resources).
+- [x] Apply the same hardware-based quota maxima to invitations and quota edits.
 - [x] Implement single-owner container records.
 - [x] Implement multiple access assignments.
 - [x] Implement access assignment and revocation.
@@ -197,7 +216,8 @@ A task is complete only when its implementation has been verified.
 - [x] Enforce container-specific permissions.
 - [x] Use actual pylxd execution.
 - [x] Establish the Admin execution identity.
-- [x] Provision and verify the non-root Container User identity.
+- [x] Provision and verify the non-root Container User identity in the original development container.
+- [ ] Verify/provision the restricted non-root terminal identity in each newly created managed container; creation currently starts LXD without a verified automatic identity-provisioning step.
 - [x] Prevent unrestricted sudo for Container Users.
 - [x] Implement command-length limits.
 - [x] Implement output-size limits.
@@ -220,7 +240,7 @@ A task is complete only when its implementation has been verified.
 - [x] Implement logout.
 - [x] Implement role-specific navigation.
 - [x] Implement the Admin overview.
-- [ ] Implement the Container User overview.
+- [x] Implement the Container User overview with only assigned containers and permitted metrics.
 - [x] Implement the container list and status indicators.
 - [x] Display current CPU, RAM and disk metrics.
 - [x] Display network RX/TX data.
@@ -231,37 +251,43 @@ A task is complete only when its implementation has been verified.
 - [x] Implement dashboard polling.
 - [x] Suspend or reduce unnecessary background-tab polling.
 - [x] Implement container creation.
-- [ ] Load image, network, profile and storage options dynamically.
+- [x] Populate LXD network and verified storage-pool choices dynamically for container creation.
+- [ ] Support validated runtime image/profile choices beyond the deliberately fixed Ubuntu 24.04 image and explicit no-profile creation, or clearly document the limitation against the assignment brief.
 - [x] Derive form bounds from available quotas and host capacity.
 - [x] Implement RAM, CPU and disk controls.
 - [x] Implement CPU allowance configuration.
 - [x] Implement ephemeral and autostart options.
+- [x] Display current allocatable disk for the selected verified storage pool in the top host-resource summary.
 - [x] Implement container lifecycle controls.
-- [ ] Implement resource-limit updates.
-- [ ] Verify resource-limit updates against real LXD containers.
+- [ ] Implement Admin resource-limit updates from the Astro dashboard (Falcon PATCH endpoint already exists).
+- [ ] Expose saved current resource limits through an authenticated Admin GET endpoint for form prefill.
+- [ ] Verify resource-limit edits made through the dashboard against real LXD containers, database allocations and metrics.
 - [ ] Reject resource updates when LXD and application accounting have drifted.
 - [ ] Prevent disk-limit reduction in the initial resource-update policy.
 - [x] Implement deletion confirmation.
-- [ ] Implement user invitations.
+- [x] Implement the Astro Admin user-invitation form with hardware-based quota limits.
 - [x] Implement user listing and role management.
+- [x] Add a Reactivate button inside each revoked Container User card (no separate reactivation panel).
 - [x] Implement quota management.
 - [x] Implement container assignments.
 - [x] Implement ownership transfers.
 - [x] Display user allocations against quotas.
-- [ ] Display host allocation summaries.
+- [ ] Display Admin host allocation summaries for RAM, CPU and disk pools, including reservations and remaining allocatable capacity.
+- [ ] Display unmanaged/missing-container blockers and a manual refresh in the host-allocation UI.
 - [x] Implement the command terminal interface.
 - [x] Display command output and exit status.
 - [ ] Handle loading, empty and error states.
 - [ ] Display stale metrics and LXD-unavailable states.
 - [ ] Verify responsive layouts.
-- [ ] Verify that role restrictions are enforced by the API.
+- [x] Verify Admin-only API routes, non-Admin denial and assigned-container authorization through backend tests.
+- [ ] Complete final browser-level checks of role-specific layout and missing/empty/error states.
 
 ## Phase 9 — Security and Correctness Testing (P0/P1)
 
 - [x] Test login and logout.
 - [x] Test uninvited Google accounts.
 - [x] Test bootstrap Admin behavior.
-- [ ] Test session expiration and revocation.
+- [x] Test session expiration and revocation in the backend authentication tests.
 - [x] Test CSRF protection.
 - [x] Test Admin-only operations.
 - [x] Test unassigned-container access.
@@ -271,6 +297,7 @@ A task is complete only when its implementation has been verified.
 - [x] Verify real quota rejection before privileged LXD creation.
 - [ ] Test concurrent allocation requests.
 - [x] Test container ownership transfers.
+- [x] Exercise the invitation, revoke and reactivate user lifecycle through the Admin dashboard (manual verification reported).
 - [x] Test unmanaged-container protections.
 - [ ] Test dangerous LXD configuration attempts.
 - [x] Test command execution limits.
@@ -291,7 +318,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Add the independent collector systemd service.
 - [ ] Configure Astro deployment.
 - [ ] Configure appropriate startup ordering.
-- [x] Configure restart policies.
+- [ ] Configure and test systemd restart policies for Falcon and the independent collector (no deployment service units are committed yet).
 - [ ] Document service logging.
 - [ ] Verify a fresh database initialization.
 - [ ] Verify service recovery.
@@ -314,7 +341,7 @@ A task is complete only when its implementation has been verified.
 
 ## Phase 12 — Documentation (P1)
 
-- [ ] Replace the template README with real setup instructions.
+- [ ] Replace the template internship-assignment README and backend/dashboard placeholders with real project setup and usage instructions.
 - [ ] Document LXD installation and initialization.
 - [ ] Document Google OAuth configuration.
 - [ ] Document backend and frontend installation.
@@ -363,5 +390,6 @@ Optional enhancements must not delay baseline security or functionality.
 - [ ] Review code for dead code and unnecessary dependencies.
 - [ ] Ensure every submitted component can be explained.
 - [ ] Verify the required submission instructions from the task email.
-- [ ] Push the completed work to GitHub.
+- [x] Push the working implementation and merge it into `main`.
+- [ ] Push the **final** verified implementation, documentation and benchmark results to `main`.
 - [ ] Submit the repository link before October 9, 2026.
