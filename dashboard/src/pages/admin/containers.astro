@@ -1,0 +1,688 @@
+
+---
+const title = "Container Management — Hobby Server Monitor";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div>
+          <h1>Hobby Server<br />Monitor</h1>
+        </div>
+
+        <nav aria-label="Main navigation">
+          <a href="/" class="nav-item">Overview</a>
+          <a href="/container" class="nav-item">
+            Container details
+          </a>
+          <a href="/admin/containers" class="nav-item active">
+            Manage containers
+          </a>
+          <a href="/admin/users" class="nav-item">Users</a>
+        </nav>
+
+        <div id="account" class="account">Loading account...</div>
+      </aside>
+
+      <main>
+        <header class="page-header">
+          <div>
+            <div class="eyebrow">Administration</div>
+            <h2>Container access & ownership</h2>
+            <p>
+              Assign users, revoke access, and transfer ownership
+              with server-side quota validation.
+            </p>
+          </div>
+
+          <button id="refresh-button" type="button">
+            Refresh
+          </button>
+        </header>
+
+        <div id="notice" class="message hidden" role="status"
+          aria-live="polite"></div>
+
+        <section class="panel">
+          <h3>Select managed container</h3>
+
+          <label for="container-select">Container</label>
+          <select id="container-select">
+            <option value="">Loading containers...</option>
+          </select>
+
+          <p id="container-summary" class="muted">
+            Select a managed container.
+          </p>
+
+          <p id="owner-summary" class="muted"></p>
+        </section>
+
+        <div class="grid">
+          <section class="panel">
+            <h3>Assign container access</h3>
+            <p class="muted">
+              Additional access does not charge the user's quota.
+            </p>
+
+            <label for="assignment-user">Active Container User</label>
+            <select id="assignment-user" disabled>
+              <option value="">Select a user</option>
+            </select>
+
+            <button id="assign-button" type="button" disabled>
+              Assign access
+            </button>
+          </section>
+
+          <section class="panel">
+            <h3>Current access</h3>
+            <p class="muted">
+              An owner's access cannot be removed without
+              transferring ownership.
+            </p>
+
+            <ul id="access-list" class="access-list">
+              <li>Loading...</li>
+            </ul>
+          </section>
+        </div>
+
+        <section class="panel">
+          <h3>Transfer ownership</h3>
+
+          <p class="muted">
+            The receiving owner's RAM, CPU and disk quotas are
+            validated by Falcon before ownership changes.
+          </p>
+
+          <label for="new-owner">New owner</label>
+          <select id="new-owner" disabled>
+            <option value="">Select a user</option>
+          </select>
+
+          <label class="checkbox-row" for="keep-access">
+            <input id="keep-access" type="checkbox" checked />
+            Keep the previous owner's container access
+          </label>
+
+          <button id="transfer-button" type="button" disabled>
+            Transfer ownership
+          </button>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      import {
+        getCurrentUser,
+        getContainers,
+        getAdminUsers,
+        getAdminContainerAccess,
+        assignContainerAccess,
+        revokeContainerAccess,
+        transferContainerOwner,
+      } from "../../lib/api.js";
+
+      const $ = (selector) => document.querySelector(selector);
+
+      const containerSelect = $("#container-select");
+      const assignmentSelect = $("#assignment-user");
+      const ownerSelect = $("#new-owner");
+      const accessList = $("#access-list");
+      const assignButton = $("#assign-button");
+      const transferButton = $("#transfer-button");
+      const refreshButton = $("#refresh-button");
+      const notice = $("#notice");
+
+      let csrfToken = "";
+      let allUsers = [];
+      let managedContainers = [];
+      let currentAccess = null;
+      let busy = false;
+
+      function showNotice(message, kind = "error") {
+        notice.textContent = message;
+        notice.className = `message ${kind}`;
+      }
+
+      function clearNotice() {
+        notice.textContent = "";
+        notice.className = "message hidden";
+      }
+
+      function userLabel(user) {
+        return user.name
+          ? `${user.name} (${user.email})`
+          : user.email;
+      }
+
+      function setOptions(select, records, label) {
+        select.replaceChildren(new Option(label, ""));
+
+        for (const record of records) {
+          select.add(new Option(record.label, record.value));
+        }
+      }
+
+      function syncButtons() {
+        containerSelect.disabled = busy || managedContainers.length === 0;
+        refreshButton.disabled = busy;
+
+        assignmentSelect.disabled =
+          busy || assignmentSelect.options.length <= 1;
+        ownerSelect.disabled =
+          busy || ownerSelect.options.length <= 1;
+
+        assignButton.disabled = busy || !assignmentSelect.value;
+        transferButton.disabled = busy || !ownerSelect.value;
+
+        for (const button of accessList.querySelectorAll("button")) {
+          button.disabled = busy;
+        }
+      }
+
+      function setBusy(value) {
+        busy = value;
+        syncButtons();
+      }
+
+      function renderAccess(access) {
+        currentAccess = access;
+
+        const owner = allUsers.find(
+          (user) => user.id === access.owner_id,
+        );
+
+        $("#owner-summary").textContent =
+          `Current owner: ${owner ? userLabel(owner) : access.owner_id}`;
+
+        accessList.replaceChildren();
+
+        for (const user of access.users || []) {
+          const item = document.createElement("li");
+          const label = document.createElement("span");
+
+          label.textContent = `${user.name || user.email} — ${
+            user.is_owner ? "Owner" : "Assigned user"
+          } (${user.status})`;
+
+          item.append(label);
+
+          if (!user.is_owner) {
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "danger";
+            remove.textContent = "Remove access";
+
+            remove.addEventListener("click", async () => {
+              if (
+                !window.confirm(
+                  `Remove ${user.email}'s access to this container?`,
+                )
+              ) {
+                return;
+              }
+
+              await runMutation(
+                () =>
+                  revokeContainerAccess(
+                    containerSelect.value,
+                    user.id,
+                    csrfToken,
+                  ),
+                "Container access removed.",
+              );
+            });
+
+            item.append(remove);
+          }
+
+          accessList.append(item);
+        }
+
+        if (!accessList.children.length) {
+          const empty = document.createElement("li");
+          empty.textContent = "No access records found.";
+          accessList.append(empty);
+        }
+
+        const assignedIds = new Set(
+          (access.users || []).map((user) => user.id),
+        );
+
+        const assignable = allUsers
+          .filter(
+            (user) =>
+              user.status === "active" &&
+              user.role === "container_user" &&
+              !assignedIds.has(user.id),
+          )
+          .map((user) => ({
+            value: user.id,
+            label: userLabel(user),
+          }));
+
+        setOptions(assignmentSelect, assignable, "Select a user");
+
+        const possibleOwners = allUsers
+          .filter(
+            (user) =>
+              user.status === "active" &&
+              user.id !== access.owner_id,
+          )
+          .map((user) => ({
+            value: user.id,
+            label: userLabel(user),
+          }));
+
+        setOptions(ownerSelect, possibleOwners, "Select new owner");
+
+        syncButtons();
+      }
+
+      async function loadAccess() {
+        const id = containerSelect.value;
+
+        currentAccess = null;
+        accessList.replaceChildren();
+        $("#owner-summary").textContent = "";
+
+        if (!id) {
+          syncButtons();
+          return;
+        }
+
+        const result = await getAdminContainerAccess(id);
+
+        // Avoid rendering an outdated request after selection changes.
+        if (containerSelect.value !== id) {
+          return;
+        }
+
+        renderAccess(result);
+      }
+
+      async function loadAll() {
+        const previousId = containerSelect.value;
+
+        const [containerResponse, userResponse] = await Promise.all([
+          getContainers(),
+          getAdminUsers(),
+        ]);
+
+        const allContainers = Array.isArray(containerResponse)
+          ? containerResponse
+          : containerResponse?.containers || [];
+
+        managedContainers = allContainers.filter(
+          (container) =>
+            typeof container.id === "string" &&
+            container.id.length > 0 &&
+            typeof container.owner_id === "string",
+        );
+
+        allUsers = Array.isArray(userResponse?.users)
+          ? userResponse.users
+          : [];
+
+        setOptions(
+          containerSelect,
+          managedContainers.map((container) => ({
+            value: container.id,
+            label: container.lxd_name || container.name || container.id,
+          })),
+          "Select managed container",
+        );
+
+        if (managedContainers.some((item) => item.id === previousId)) {
+          containerSelect.value = previousId;
+        } else if (managedContainers.length) {
+          containerSelect.value = managedContainers[0].id;
+        }
+
+        $("#container-summary").textContent =
+          `${managedContainers.length} managed container(s) available`;
+
+        await loadAccess();
+        syncButtons();
+      }
+
+      async function runMutation(operation, successText) {
+        if (busy || !csrfToken || !currentAccess) {
+          return;
+        }
+
+        clearNotice();
+        setBusy(true);
+
+        try {
+          await operation();
+          await loadAll();
+          showNotice(successText, "success");
+        } catch (error) {
+          showNotice(error?.message || "Operation failed.");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      containerSelect.addEventListener("change", () => {
+        clearNotice();
+
+        loadAccess().catch((error) => {
+          showNotice(error?.message || "Unable to load container access.");
+        });
+      });
+
+      assignmentSelect.addEventListener("change", syncButtons);
+      ownerSelect.addEventListener("change", syncButtons);
+
+      assignButton.addEventListener("click", () => {
+        const containerId = containerSelect.value;
+        const userId = assignmentSelect.value;
+
+        if (!containerId || !userId) {
+          return;
+        }
+
+        runMutation(
+          () => assignContainerAccess(containerId, userId, csrfToken),
+          "Container access assigned.",
+        );
+      });
+
+      transferButton.addEventListener("click", () => {
+        const containerId = containerSelect.value;
+        const newOwnerId = ownerSelect.value;
+        const keepPrevious = $("#keep-access").checked;
+
+        if (!containerId || !newOwnerId) {
+          return;
+        }
+
+        const nextOwner = allUsers.find(
+          (user) => user.id === newOwnerId,
+        );
+
+        if (
+          !window.confirm(
+            `Transfer ownership to ${
+              nextOwner ? userLabel(nextOwner) : newOwnerId
+            }?\n\nThe new owner's quota will be charged.`,
+          )
+        ) {
+          return;
+        }
+
+        runMutation(
+          () =>
+            transferContainerOwner(
+              containerId,
+              newOwnerId,
+              keepPrevious,
+              csrfToken,
+            ),
+          "Container ownership transferred.",
+        );
+      });
+
+      refreshButton.addEventListener("click", async () => {
+        clearNotice();
+        setBusy(true);
+
+        try {
+          await loadAll();
+          showNotice("Container data refreshed.", "success");
+        } catch (error) {
+          showNotice(error?.message || "Unable to refresh.");
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      async function initialize() {
+        try {
+          const response = await getCurrentUser();
+          const user = response.user || response;
+
+          if (user.role !== "admin") {
+            showNotice("403 — Administrator access is required.");
+            return;
+          }
+
+          csrfToken = response.csrf_token || user.csrf_token || "";
+
+          if (!csrfToken) {
+            showNotice("CSRF token is unavailable.");
+            return;
+          }
+
+          $("#account").replaceChildren();
+
+          const name = document.createElement("strong");
+          name.textContent = user.name || user.email || "Admin";
+
+          const role = document.createElement("span");
+          role.textContent = "Admin";
+
+          $("#account").append(name, role);
+
+          await loadAll();
+          clearNotice();
+        } catch (error) {
+          showNotice(error?.message || "Unable to load management page.");
+        }
+      }
+
+      initialize();
+    </script>
+
+    <style is:global>
+      :root {
+        font-family: Inter, system-ui, sans-serif;
+        color: #e5e7eb;
+        background: #080d16;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #080d16;
+      }
+
+      button, select { font: inherit; }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 36px;
+        padding: 28px 22px;
+        border-right: 1px solid #1f2937;
+        background: #0d1420;
+      }
+
+      .sidebar h1 { margin: 0; font-size: 20px; }
+
+      nav { flex: 1; }
+
+      .nav-item {
+        display: block;
+        padding: 11px 12px;
+        border-radius: 8px;
+        color: #9ca3af;
+        text-decoration: none;
+      }
+
+      .nav-item.active {
+        color: #f9fafb;
+        background: #172033;
+      }
+
+      .account {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding-top: 18px;
+        border-top: 1px solid #1f2937;
+      }
+
+      .account span, .muted {
+        color: #94a3b8;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      main { padding: 30px; min-width: 0; }
+
+      .page-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .page-header h2 { margin: 5px 0; }
+      .page-header p { margin: 0; color: #94a3b8; }
+
+      .eyebrow {
+        color: #7dd3fc;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+
+      .panel {
+        margin-top: 22px;
+        padding: 20px;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        background: #101826;
+        min-width: 0;
+      }
+
+      .panel h3 { margin: 0 0 12px; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      label {
+        display: block;
+        margin: 15px 0 6px;
+        color: #cbd5e1;
+        font-size: 13px;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #e5e7eb;
+        background: #080d16;
+      }
+
+      button {
+        margin-top: 14px;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 9px 13px;
+        color: #e5e7eb;
+        background: #22304a;
+        cursor: pointer;
+      }
+
+      .page-header button { margin-top: 0; }
+
+      button:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+      }
+
+      .danger {
+        border-color: #7f1d1d;
+        color: #fecaca;
+        background: #2b1217;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .checkbox-row input { width: auto; }
+
+      .access-list {
+        padding: 0;
+        list-style: none;
+      }
+
+      .access-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #1f2937;
+        font-size: 13px;
+      }
+
+      .access-list button {
+        flex-shrink: 0;
+        margin: 0;
+      }
+
+      .message {
+        margin-top: 18px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        background: #172033;
+      }
+
+      .message.error {
+        color: #fecaca;
+        border-color: #7f1d1d;
+        background: #2b1217;
+      }
+
+      .message.success { color: #bbf7d0; }
+      .hidden { display: none; }
+
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+        .grid { grid-template-columns: 1fr; }
+        main { padding: 18px; }
+      }
+
+      @media (max-width: 600px) {
+        .page-header, .access-list li {
+          align-items: stretch;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </body>
+</html>
