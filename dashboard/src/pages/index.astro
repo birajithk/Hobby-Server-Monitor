@@ -27,9 +27,6 @@ const title =
 
       <aside class="sidebar">
         <div>
-          <div class="brand-small">
-            RoboticGen
-          </div>
 
           <h1>
             Hobby Server
@@ -46,6 +43,17 @@ const title =
             Overview
           </a>
 
+		  <a href="/container" class="nav-item">
+			Container details
+		  </a>
+
+		  <a
+			id="admin-containers-link"
+			href="/admin/containers"
+			class="nav-item hidden"
+		  >
+  			Manage containers
+		  </a>
 		  <a
 			id="admin-users-link"
 			href="/admin/users"
@@ -622,6 +630,9 @@ const title =
 				.remove(
 		          "hidden",
 				);
+			document
+				.querySelector("#admin-containers-link")
+				?.classList.remove("hidden");
 			}
 
           account.innerHTML = `

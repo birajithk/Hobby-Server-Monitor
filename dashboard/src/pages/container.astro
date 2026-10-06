@@ -31,9 +31,6 @@ const title =
       <aside class="sidebar">
 
         <div>
-          <div class="eyebrow">
-            RoboticGen
-          </div>
 
           <h1>
             Hobby Server
@@ -50,12 +47,18 @@ const title =
             Overview
           </a>
 
-          <a
-            href="#"
-            class="nav-item active"
-          >
+          <a href="#" class="nav-item active">
             Container details
           </a>
+
+          <a
+            id="admin-containers-link"
+            href="/admin/containers"
+            class="nav-item hidden"
+          >
+            Manage containers
+          </a>
+
           <a
             id="admin-users-link"
             href="/admin/users"
@@ -376,6 +379,7 @@ const title =
     <script>
       import {
         ApiError,
+        getContainers,
         getCurrentUser,
         getLatestMetrics,
         getMetricHistory,
@@ -1208,6 +1212,9 @@ const title =
               .remove(
                 "hidden",
               );
+            document
+              .querySelector("#admin-containers-link")
+              ?.classList.remove("hidden");
           }
 
           account.replaceChildren();
@@ -1344,6 +1351,9 @@ const title =
       document.addEventListener(
         "visibilitychange",
         async () => {
+          if (!containerId) {
+            return;
+          }
 
           if (
             document.visibilityState
@@ -1365,15 +1375,67 @@ const title =
       );
 
 
-      loadPage();
+      async function openContainerPage() {
+        if (containerId) {
+          sessionStorage.setItem(
+            "hsm:last-container-id",
+            containerId,
+          );
 
+          await loadPage();
 
-      if (
-        document.visibilityState
-        === "visible"
-      ) {
-        schedulePolling();
+          if (document.visibilityState === "visible") {
+            schedulePolling();
+          }
+
+          return;
+        }
+
+        try {
+          const response = await getContainers();
+
+          const containers = (
+            Array.isArray(response)
+              ? response
+              : response?.containers || []
+          ).filter(
+            (item) =>
+              typeof item?.id === "string" &&
+              item.id.length > 0 &&
+              item.managed !== false &&
+              item.is_managed !== false
+          );
+
+          const previousId = sessionStorage.getItem(
+            "hsm:last-container-id",
+          );
+
+          const selected =
+            containers.find(
+              (item) => item.id === previousId,
+            ) || containers[0];
+
+          if (!selected) {
+            showError(
+              "No managed containers are available. Return to Overview.",
+            );
+
+            setConnection(false);
+            return;
+          }
+
+          window.location.replace(
+            `/container?id=${encodeURIComponent(selected.id)}`,
+          );
+        } catch (error) {
+          showError(
+            error?.message ||
+            "Unable to select a container.",
+          );
+        }
       }
+
+      openContainerPage();
 
     </script>
 

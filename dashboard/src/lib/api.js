@@ -273,3 +273,63 @@ export function updateUserQuota(
     },
   );
 }
+
+export function getAdminContainerAccess(containerId) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/access`,
+  );
+}
+
+export function assignContainerAccess(
+  containerId,
+  userId,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/access/${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      headers: {
+        "X-CSRF-Token": csrfToken,
+      },
+    },
+  );
+}
+
+export function revokeContainerAccess(
+  containerId,
+  userId,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/access/${encodeURIComponent(userId)}`,
+    {
+      method: "DELETE",
+      headers: {
+        "X-CSRF-Token": csrfToken,
+      },
+    },
+  );
+}
+
+export function transferContainerOwner(
+  containerId,
+  newOwnerId,
+  keepPreviousOwnerAccess,
+  csrfToken,
+) {
+  return apiRequest(
+    `/api/admin/containers/${encodeURIComponent(containerId)}/transfer-owner`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify({
+        new_owner_id: newOwnerId,
+        keep_previous_owner_access: keepPreviousOwnerAccess,
+      }),
+    },
+  );
+}

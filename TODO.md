@@ -245,7 +245,7 @@ A task is complete only when its implementation has been verified.
 - [ ] Implement user invitations.
 - [x] Implement user listing and role management.
 - [x] Implement quota management.
-- [ ] Implement container assignments.
+- [x] Implement container assignments.
 - [x] Implement ownership transfers.
 - [x] Display user allocations against quotas.
 - [ ] Display host allocation summaries.
