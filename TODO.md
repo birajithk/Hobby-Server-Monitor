@@ -358,14 +358,14 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Document the LXD privilege decision and residual risk.
 - [ ] Complete the detailed security threat model.
 - [x] Document deployment and verified recovery behavior.
-- [ ] Complete REPORT.md.
-- [ ] Record approximate time spent per area.
-- [ ] Record actual problems and solutions.
-- [ ] Record lessons learned.
-- [ ] Document implemented bonuses.
+- [x] Complete REPORT.md.
+- [x] Record approximate time spent per area.
+- [x] Record actual problems and solutions.
+- [x] Record lessons learned.
+- [x] Document implemented bonuses.
 - [x] Document actual resource measurements.
-- [ ] Complete the known-limitations section of REPORT.md.
-- [ ] Disclose AI tool usage in REPORT.md.
+- [x] Complete the known-limitations section of REPORT.md.
+- [x] Disclose AI tool usage in REPORT.md.
 - [ ] Verify README instructions on a clean environment.
 
 ## Phase 13 — Bonuses (P2)
@@ -388,8 +388,8 @@ Optional enhancements must not delay baseline security or functionality.
 - [ ] Confirm all baseline features work end to end.
 - [x] Confirm the collector runs independently.
 - [x] Confirm historical metrics survive a restart.
-- [ ] Confirm resource measurements are published.
-- [ ] Confirm all configuration variables are documented.
+- [x] Confirm resource measurements are published.
+- [x] Confirm all configuration variables are documented.
 - [ ] Confirm no secrets are present in Git history.
 - [ ] Review code for dead code and unnecessary dependencies.
 - [ ] Ensure every submitted component can be explained.
