@@ -1,305 +1,932 @@
-# Software Engineer Intern Task — Hobby Server Monitor
+# Hobby Server Monitor
 
-**Contact:** dev@roboticgen.co
+A lightweight, browser-based management and monitoring system for an on-premises Linux server using LXD containers.
 
----
+Built for the RoboticGen Software Engineer Intern task.
 
-## 👤 Role
+## 1. Project Overview
 
-You are a **Software Engineer Intern**. There is an old Linux machine in the office, and your job is to turn it into an on-premises server for testing purposes.
+Hobby Server Monitor lets an administrator manage LXD containers, users, resource quotas, terminal access, and historical resource usage from a browser.
 
-You will use **LXD** (documentation) to manage containers on that machine, and you will build an **admin dashboard and control panel** on top of it so the server can be managed and monitored from a browser.
+The application runs on the same Linux machine it monitors, so resource efficiency and security are central design requirements.
 
-Two constraints run through the whole task and are weighted heavily in evaluation,
+### Technology stack
 
-1. **Resource efficiency** — the tool runs *on* the server it monitors. It must consume as little CPU and RAM as possible while still doing its job.
-2. **Security** — this is a server with container-level privileges. Authentication, authorization, and input handling must be done correctly.
-
----
-
-## 📋 Prerequisites
-
-- **WSL2 (Windows) or a native Ubuntu machine (preferred)** to test LXD functionality. LXD does not run on macOS natively; use a VM if needed.
-- Python 3.10+
-- Node.js 18+ (for Astro)
-- LXD 5.x installed and initialized (`lxd init --minimal` is enough for development)
-- A Google Cloud project with OAuth 2.0 credentials (free tier without adding a card)
-
----
-
-## 📘 Project Summary
-
-### Users
-
-Two roles,
-
-| Role | Capabilities |
+| Component | Technology |
 | --- | --- |
-| **Admin** | Create, update, view and delete containers. Manage users and container assignments. Full terminal access. |
-| **Container User** | View metrics for containers explicitly assigned to them. Terminal access to those containers only. |
+| Backend API | Falcon (Python) |
+| Container management | LXD through pylxd |
+| Dashboard | Astro with client-side JavaScript |
+| Application database | SQLite |
+| Time-series metrics | TinyFlux |
+| Backend server | Gunicorn |
+| Process supervision | systemd |
+| Static frontend and reverse proxy | Nginx |
+| Authentication | Google OAuth 2.0 |
+
+The project targets Ubuntu with LXD 5.x. It uses Python 3.10+ and Node.js 22.12+ for the current Astro frontend.
+
+## 2. Features
+
+### Admin
+
+An Admin can:
+
+- View all LXD containers and their resource metrics.
+- Inspect host CPU, memory, storage and network information.
+- Create managed containers with validated resource limits.
+- Start, stop, restart, freeze and unfreeze containers.
+- Update supported RAM, CPU and disk limits.
+- Delete managed containers after confirmation.
+- Invite, revoke, reactivate and manage users.
+- Assign and revoke container access.
+- Transfer managed-container ownership.
+- Configure per-user resource quotas.
+- View allocated resources against host capacity.
+- Explicitly adopt eligible externally created containers.
+- Execute commands inside authorized containers.
+- View historical container metrics.
+
+### Container User
+
+A Container User can:
+
+- View containers explicitly assigned to them.
+- See their own resource quota and allocation.
+- View current and historical metrics.
+- Execute permitted commands inside accessible containers.
+
+A Container User cannot create or manage containers through Admin endpoints.
+
+## 3. Architecture
+
+```text
+                    Browser
+                       |
+                       v
+                  Nginx / Astro
+                       |
+                 /api and /auth
+                       |
+                       v
+                 Falcon Backend
+                       |
+           +-----------+-----------+
+           |                       |
+           v                       v
+     Authentication          Application
+     Authorization           Services
+           |                       |
+           v                       v
+         SQLite             pylxd / LXD
+                                   |
+                                   v
+                              Containers
+
+
+              Independent systemd Service
+                       |
+                       v
+                Metrics Collector
+                       |
+                 LXD Statistics
+                       |
+                       v
+                     TinyFlux
+                       |
+                       v
+              Historical Metrics API
+```
+
+The browser does not connect directly to LXD.
+
+Falcon validates the authenticated user, their role, container access and resource limits before performing privileged operations.
+
+The metrics collector is an independent process. It continues collecting when no browser is connected or when the Falcon API is restarted.
+
+## 4. Repository Structure
+
+```text
+Hobby-Server-Monitor/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── auth/
+│   │   ├── db/
+│   │   ├── metrics/
+│   │   ├── services/
+│   │   ├── collector.py
+│   │   ├── config.py
+│   │   └── main.py
+│   ├── tests/
+│   └── requirements.txt
+├── dashboard/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   └── pages/
+│   ├── astro.config.mjs
+│   └── package.json
+├── deploy/
+│   ├── nginx/
+│   ├── systemd/
+│   ├── scripts/
+│   ├── hsm.env.example
+│   └── README.md
+├── docs/
+│   ├── DECISIONS.md
+│   └── PROJECT_SPEC.md
+├── .env.example
+├── README.md
+├── REPORT.md
+└── TODO.md
+```
+
+## 5. Development Setup
+
+These instructions use native Ubuntu. WSL2 may also be used when LXD is configured correctly.
+
+### 5.1 Install prerequisites
+
+```bash
+sudo apt update
+
+sudo apt install -y \
+  git \
+  python3 \
+  python3-venv \
+  python3-pip \
+  curl
+```
+
+Install Node.js 22.12 or newer and npm using an appropriate supported installation method.
+
+Verify:
+
+```bash
+python3 --version
+node --version
+npm --version
+```
+
+### 5.2 Install and initialize LXD
+
+Follow the official installation instructions:
+
+https://documentation.ubuntu.com/lxd/
+
+For Ubuntu with snap support:
+
+```bash
+sudo snap install lxd --channel=5.21/stable
+```
+
+If LXD is already installed, do not reinstall it.
+
+For a minimal development configuration:
+
+```bash
+sudo lxd init --minimal
+```
+
+Verify:
+
+```bash
+lxc version
+lxc info
+lxc storage list
+lxc network list
+```
+
+Container creation requires an appropriate storage pool and usable network.
+
+If those do not exist, configure them using the LXD initialization procedure before creating containers.
+
+The application uses LXD's default project.
+
+**Security warning:** Membership in the local `lxd` group provides extensive privileges and may effectively allow host-level control. Only trusted administrators or the designated backend service account should receive this permission.
+
+### 5.3 Obtain the project
+
+```bash
+git clone https://github.com/birajithk/Hobby-Server-Monitor.git
+
+cd Hobby-Server-Monitor
+```
+
+Use the verified submission branch or `main` when the final implementation has been merged.
+
+### 5.4 Create the backend environment
+
+```bash
+cd backend
+
+python3 -m venv .venv
+
+source .venv/bin/activate
+
+python -m pip install -r requirements.txt
+
+cd ..
+```
+
+### 5.5 Configure environment variables
+
+From the repository root:
+
+```bash
+cp .env.example .env
+```
+
+Generate a session secret:
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Edit `.env`:
+
+```bash
+nano .env
+```
+
+Configure:
+
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+- `GOOGLE_OAUTH_REDIRECT_URI`
+- `SESSION_SECRET`
+- `BOOTSTRAP_ADMIN_EMAIL`
+- `COOKIE_SECURE`
+
+For the Astro development server, use:
+
+```dotenv
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:4321/auth/google/callback
+COOKIE_SECURE=false
+```
+
+Do not commit `.env`.
+
+The application configuration loads the repository-root `.env` file. Relative SQLite and TinyFlux paths are interpreted relative to the process working directory.
+
+### 5.6 Configure Google OAuth
+
+1. Open https://console.cloud.google.com/
+2. Create or select a Google Cloud project.
+3. Configure the Google Auth Platform consent screen.
+4. Create an OAuth 2.0 client of type **Web application**.
+5. Add the redirect URI:
+
+```text
+http://localhost:4321/auth/google/callback
+```
+
+6. Copy the client ID and client secret into `.env`.
+7. If the OAuth application is in Testing mode, add the intended Google account as a test user.
+8. Set `BOOTSTRAP_ADMIN_EMAIL` to the Google email address intended for the first Admin.
+
+The configured email is the only account permitted to perform the initial Admin bootstrap when no active Admin exists.
+
+Other users must be invited by an Admin.
+
+### 5.7 Initialize SQLite
+
+From the `backend/` directory:
+
+```bash
+cd backend
+
+source .venv/bin/activate
+
+python -m app.db.init_db
+```
+
+The initializer creates the database if necessary and applies supported schema migrations.
+
+It can also be run against an already initialized database.
+
+### 5.8 Start the Falcon backend
+
+Terminal 1:
+
+```bash
+cd backend
+
+source .venv/bin/activate
+
+gunicorn \
+  --bind 127.0.0.1:8000 \
+  --workers 1 \
+  app.main:app
+```
+
+Verify:
+
+```bash
+curl --fail http://127.0.0.1:8000/api/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok",
+  "service": "hobby-server-monitor-api"
+}
+```
+
+### 5.9 Start the independent metrics collector
+
+Terminal 2:
+
+```bash
+cd backend
+
+source .venv/bin/activate
+
+python -m app.collector
+```
+
+The collector polls LXD every 10 seconds by default.
+
+To execute a single collection cycle:
+
+```bash
+python -m app.collector --once
+```
+
+The collector runs independently of the dashboard.
+
+### 5.10 Start Astro
+
+Terminal 3:
+
+```bash
+cd dashboard
+
+npm ci
+
+npm run dev
+```
+
+Open:
+
+http://localhost:4321
+
+The development server proxies `/api` and `/auth` requests to Falcon on port `8000`.
+
+Sign in using the configured bootstrap Admin Google account.
+
+## 6. Browser Usage
+
+### Admin workflow
+
+1. Sign in with Google.
+2. Open the Admin dashboard.
+3. Review host allocation and LXD container status.
+4. Invite a Container User and configure their resource quota.
+5. Create a managed container and select its owner.
+6. Choose an approved Ubuntu image, storage pool and network.
+7. Configure RAM, CPU, CPU allowance and disk.
+8. Assign access to authorized users.
+9. Inspect live metrics or historical charts.
+10. Use the terminal for authorized container operations.
+
+Container creation currently approves Ubuntu 24.04 as its image alias.
+
+Storage pools and networks are validated against available LXD resources. Containers are created without inheriting arbitrary default-profile devices.
+
+### Container User workflow
+
+1. Sign in using an invited Google account.
+2. View only explicitly assigned containers.
+3. Inspect the user's resource quota.
+4. Open an authorized container.
+5. View its metrics or execute commands with the available restricted terminal.
+
+An unassigned managed container must not become accessible merely by requesting its API identifier.
+
+## 7. Authentication and Authorization
+
+The application uses Google OAuth 2.0 for identity verification.
+
+Google OAuth state and PKCE protect the authorization flow.
+
+Falcon issues an application-controlled server-side session after the Google identity is verified and authorized.
+
+Session cookies use `HttpOnly` and `SameSite=Lax`. The `Secure` flag is enabled for HTTPS deployments.
+
+Sessions are stored in SQLite. Logging out revokes the server-side session.
+
+Authentication middleware denies access by default unless an endpoint explicitly declares itself public.
+
+Admin-only operations are enforced by role checks.
+
+Container-specific operations also check the user's assignment or administrative privileges in the service layer.
+
+State-changing requests require the application's `X-CSRF-Token` header.
+
+## 8. Quota and Container Ownership Model
+
+Each managed container has one owner.
+
+The owner's allocated RAM, CPU cores and disk contribute to that user's quota.
+
+For example, a container allocated 2 GiB of RAM consumes 2 GiB of its owner's quota even if it is currently using less memory.
+
+Stopped containers still consume their configured allocations.
+
+Additional access assignments do not consume the assigned user's quota.
+
+Container creation, resource updates and ownership transfers validate quotas and applicable host capacity limits.
+
+Externally created LXD containers are discovered for Admin visibility, but they are not automatically treated as application-managed containers.
+
+Eligible external containers require explicit Admin adoption before being incorporated into application ownership and quota accounting.
+
+## 9. Historical Metrics
+
+The collector polls LXD independently every 10 seconds.
+
+It stores raw observations in TinyFlux.
+
+### Measurements
+
+| TinyFlux measurement | Purpose |
+| --- | --- |
+| `container_raw` | Raw observations |
+| `container_5m` | Aggregated five-minute observations |
+
+### Raw tags
+
+Raw metric tags include:
+
+- `project`
+- `lxd_name`
+- `lxd_uuid`
+- `managed`
+- `container_id`
+- `status`
+- `state_available`
+- `ipv4`
+- `image_os`
+- `image_version`
+
+### Raw fields
+
+Depending on container state and metric availability, fields include:
+
+- `status_code`
+- `cpu_usage_ns`
+- `cpu_percent`
+- `memory_usage_bytes`
+- `memory_total_bytes`
+- `disk_usage_bytes`
+- `disk_total_bytes`
+- `rx_bytes`
+- `tx_bytes`
+- `rx_bytes_per_second`
+- `tx_bytes_per_second`
+- `packets_rx`
+- `packets_tx`
+- `processes`
+- `pid`
+- `uptime_seconds`
+
+Some values may be absent when a container is stopped or LXD cannot return its runtime state.
+
+### Retention
+
+The default raw-metric retention period is 24 hours.
+
+Five-minute aggregates are retained for 30 days.
+
+Retention cleanup runs when the collector starts and periodically during collection.
+
+Historical API ranges are:
+
+| Range | Chart resolution |
+| --- | --- |
+| 1 hour | 10 seconds |
+| 6 hours | 60 seconds |
+| 24 hours | 5 minutes |
+| 7 days | 30 minutes |
+| 30 days | 2 hours |
+
+The API returns chart-ready data rather than transmitting every raw sample for long-duration charts.
+
+## 10. SQLite Data Model
+
+The application uses SQLite with schema version 2.
+
+| Table | Purpose |
+| --- | --- |
+| `users` | Google identity, role, status and resource quotas |
+| `containers` | Managed container identity, owner and allocated limits |
+| `container_access` | Additional user-to-container assignments |
+| `sessions` | Hashed session tokens, CSRF hashes and expiration |
+| `audit_logs` | Administrative and security-relevant action records |
+| `oauth_flows` | Short-lived OAuth state, PKCE and nonce tracking |
+
+Important relationships:
+
+- `containers.owner_id` references `users.id`.
+- `container_access` references both containers and users.
+- Deleting a container cascades its additional access assignments.
+- A container owner cannot be deleted while ownership dependencies remain.
+- Audit records can retain an email snapshot after an actor is removed.
+
+Exact definitions are in:
+
+- `backend/app/db/schema.sql`
+- `backend/app/db/migrations/002_auth.sql`
+
+Database initialization is implemented in:
+
+`backend/app/db/init_db.py`
+
+## 11. API Reference
+
+All paths below are relative to the Falcon API.
+
+`Public` means no application session is required. Other endpoints require an authenticated session.
+
+For state-changing requests, send a valid session cookie and `X-CSRF-Token`.
 
 ### Authentication
 
-- Users sign in via **Google OAuth 2.0**.
-- The first user to sign in becomes the Admin, **or** a bootstrap admin email is set via environment variable. Document whichever you choose.
-- Users who have never been invited by an Admin must not gain access by simply signing in with a Google account.
-
----
-
-## 🧭 System Flow Overview
-
-### 🔄 Main Process
-
-**1. Admin logs into the admin dashboard**
-
-1.1 The dashboard shows **all containers** with key metrics. A starting set, decide for yourself what else earns space on the screen and what is noise,
-
-- CPU usage (%)
-- RAM usage (used / allocated, %)
-- Disk usage (used / allocated, %)
-- Network I/O (RX / TX bytes and rate)
-- Container state (Running / Stopped / Frozen / Error)
-- Uptime
-- Process count
-- Image / OS version
-- IPv4 address
-
-1.2 Admin can **create a new container** through an interactive form. Roughly what it needs to cover (treat this as a starting point rather than a checklist),
-
-- Container name (validated - lowercase alphanumeric + hyphens, LXD naming rules)
-- Base image / Ubuntu version (selected from a list of available aliases)
-- **RAM allocation** — slider with enforced min/max bounds
-- **CPU allocation** — slider or stepper for core count, plus CPU allowance (%)
-- **Disk size** — slider, bounded by available storage pool capacity
-- Network configuration (available bridges / profiles, discovered at runtime)
-- Storage pool selection
-- Ephemeral toggle
-- Autostart on boot toggle
-- Optional description
-
-Bounds must be derived from the **actual host capacity and the requesting user's remaining quota**, not hard-coded, and the API must re-validate every value server-side. Explore `pylxd` for further configurable options and add what makes sense. Make sure you document what you added and why.
-
-1.3 Admin can **update or delete** an existing container,
-
-- Start / stop / restart / freeze
-- Change resource limits on a running container
-- Delete, with a confirmation step
-- Destructive and limit-changing actions leave a trail
-
-1.4 Admin can **add users** to the organization and grant them access to one or more containers,
-
-- Invite by Google account email
-- Assign / revoke container access
-- Change a user's role
-- Revoke a user entirely
-- **Set a resource quota per user** — maximum RAM, CPU cores, and disk that user's containers may collectively consume
-
-1.5 Admin can see **usage accounting** across the server,
-
-- Total allocated vs. total available RAM, CPU and disk for the host
-- Per-user allocated total against that user's quota
-- Per-container consumption over a selectable period, derived from the TSDB
-
-**2. Container User**
-
-2.1 Sees metrics **only** for containers assigned to them. Requesting an unassigned container by ID must return 403.
-
-2.2 Sees their own quota and how much of it is currently allocated.
-
-### Common
-
-Both roles can access a **terminal** for containers they have access to: send a command from the UI, see the result. A real `pylxd` exec is preferred.
-
-This feature lets a logged-in user run text you create on a machine you control. A key challenge is making sure this can't be used to gain control of the host machine, and we'll ask how you would prevent that.
-
-### 🔄 Background Process
-
-1. Poll resource metrics for every container **every 10 seconds**.
-2. Store the samples in a **TSDB (TinyFlux)**.
-3. The collector keeps working when LXD is temporarily unavailable, and its cost does not scale with the number of open browser tabs.
-4. Storage growth is bounded. A collector left running for a month on a small server should not be a problem — how you achieve that is up to you.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Tech (Preferred) |
-| --- | --- |
-| Backend | Falcon |
-| Dashboard | Astro |
-| LXD | pylxd |
-| DB | sqlite3 |
-| TSDB | TinyFlux |
-
-Substitutions are allowed only with justification in the final report. Choosing a familiar heavyweight framework because it is familiar is not a justification.
-
----
-
-## 🎯 Scope & Expectations
-
-This section describes **what the tool has to accomplish**, not how to build it. That is deliberate. We are not handing you a specification you can implement line by line, because deciding what to build, what to leave out, and being able to justify both is most of the task.
-
-### The baseline
-
-The tool is not finished until someone can, from a browser,
-
-- Sign in with Google and land in a view appropriate to their role.
-- As an Admin, see every container on the host with live resource metrics.
-- Create a container through a form that only offers valid options.
-- Change limits on, restart, and delete an existing container.
-- Invite a user, give them a resource budget, and grant them access to specific containers.
-- Sign in as that user and see only what they were given.
-- Look at how a container behaved over the last minutes and hours, not only right now.
-- Run a command against a container and see the output.
-
-Underneath that, a background process keeps collecting metrics whether or not a browser is open, and history survives both a page refresh and a service restart.
-
-That is the floor, not the target. How much further you go is your call.
-
-### Decisions we are leaving to you
-
-Each of these has more than one defensible answer. We care much more about *why* you chose one than about which one you chose:
-
-1. How does a signed-in user stay signed in, and what does logging out actually do?
-2. Where in your system does an authorization decision get made, and how do you stop an endpoint written next month from missing it?
-3. What exactly does a quota measure, and what happens at the moment someone reaches theirs?
-4. `pylxd` needs privileged access to LXD. What does that access actually grant, and what did you do about it?
-5. How does the dashboard find out that something changed, and what does that cost while nobody is looking at it?
-6. What is in your metric store after a month of uptime?
-7. How real is your terminal, and what can an authenticated user do with it that you did not intend?
-8. What does your schema do when a container is renamed, and when one is deleted while still assigned to someone?
-9. How much data does a 24-hour chart need to move, and how much of it reaches the browser?
-10. What does a user see when LXD is down, slow, or answers with something you did not expect?
-11. How does the first Admin come to exist, and why can that mechanism not be abused?
-12. How does this run on the machine, and how does it come back after a reboot?
-
-We would rather read three of these answered thoughtfully, with the rest listed honestly as known gaps, than twelve answered with whatever the first suggestion happened to be.
-
-### Non-negotiables
-
-Short list, and we do check these directly,
-
-- The metrics collector runs independently of the UI.
-- You measured your resource footprint and published the numbers.
-- You can **explain and defend every line you submit.**
-
-### If you run out of time
-
-Cut deliberately and say so. A smaller, coherent system with a clear-eyed "here is what I did not build and why" reads far better than six half-wired features.
-
----
-
-## 📦 Expected Deliverables
-
-### 🔹 Source Code
-
-- A public or shared Git repository containing backend, frontend, and any scripts.
-- Meaningful commit history — incremental commits, not one commit titled "final".
-- `.env.example` listing every required environment variable.
-- Dependency manifests (`requirements.txt` / `pyproject.toml`, `package.json`).
-- A working `init_db` / migration path so a reviewer can start from an empty machine.
-
-### 🔹 Documentation
-
-A `README.md` containing but not limited to,
-
-1. **Setup** — from a fresh Ubuntu/WSL machine to a running app, including LXD init and Google OAuth credential setup. A reviewer should reach a running dashboard by following it, with no undocumented steps.
-2. **Architecture** — a diagram plus a short explanation of how the components talk to each other.
-3. **Data model** — SQLite schema and the TinyFlux measurement/tag/field layout.
-4. **API reference** — endpoints, methods, required role, request/response shape.
-5. **Security notes** — threat model summary and your LXD privilege decision.
-6. **Configuration** — every environment variable and what it does.
-
-### 🔹 Final Report
-
-A separate `REPORT.md` including,
-
-- **Time spent** — roughly per area (backend, frontend, LXD integration, debugging).
-- **Issues encountered and solutions** — the real ones, including what you got wrong first.
-- **What you learned.**
-- **Bonus features implemented.**
-- **Resource measurements** — your idle RAM and CPU footprint, and how you measured it.
-- **Known limitations** — what is unfinished, broken, or simulated.
-- **AI tool usage** — see below.
-
-> Use of AI tools (e.g. ChatGPT, GitHub Copilot, Cursor, Claude) is **highly encouraged**.
-> 
-> 
-> Be transparent about how they were used by documenting it in your report: which tools, for which parts, what you accepted, and what you rejected or had to fix. You must be able to explain every line of code you submit and expect to be asked during the review.
-> 
-
----
-
-## ✅ Evaluation Criteria
-
-Submissions are reviewed in two parts: we set the project up and read the code, then we sit with you for **30–45 minutes** and ask about it.
-
-| # | Area | Weight | What we look for |
+| Method | Endpoint | Permission | Description |
 | --- | --- | --- | --- |
-| 1 | **Judgment & defense of decisions** | 25% | Did you make real choices from the open list above, and can you explain the tradeoffs and the alternatives you rejected? |
-| 2 | **Security & correctness** | 20% | Authorization enforced at the API, input validated server-side, no injection paths, no leaked secrets, and a reasoned position on the LXD privilege problem. We probe these directly rather than reading about them. |
-| 3 | **Functional completeness** | 20% | Does the baseline work end to end on a clean machine, following only your README? |
-| 4 | **Code quality** | 10% | Clear structure, separation of concerns, honest error handling, no large blocks of dead code. |
-| 5 | **Documentation & report** | 10% | Can someone else set this up and understand why it looks the way it does? Is the report specific and honest about what is missing? |
-| 6 | **Resource efficiency** | 10% | Measured footprint, sensible polling design, lean frontend. Evidence beats claims. |
-| 7 | **UX** | 5% | Clear under real conditions loading, empty, and error states included. |
+| GET | `/api/health` | Public | Backend health |
+| GET | `/auth/google/login` | Public | Start Google login |
+| GET | `/auth/google/callback` | Public | Complete OAuth flow |
+| GET | `/api/me` | Authenticated | Current user and CSRF token |
+| POST | `/auth/logout` | Authenticated | Revoke current session |
 
-**Bonus (up to +10%)** — anything genuinely useful we did not ask for like tests, CI, snapshots, alerting, metric export, a systemd unit, a thoughtful threat model.
+Example `/api/me` response structure:
 
-**What will sink an otherwise working submission,**
+```json
+{
+  "user": {
+    "id": "<user-id>",
+    "email": "admin@example.com",
+    "name": "Example Admin",
+    "role": "admin"
+  },
+  "csrf_token": "<csrf-token>"
+}
+```
 
-- **Code you cannot explain.** This one is worth stating plainly: we expect you to use AI tools, and we will ask you why a given function is written the way it is, what you tried first, and what you would change. A working project whose author cannot defend its design scores below a smaller project whose author can.
+### Users and resource quotas
 
-We would rather see **fewer things done properly** than everything half-working.
+| Method | Endpoint | Permission | Description |
+| --- | --- | --- | --- |
+| POST | `/api/admin/invitations` | Admin | Invite Container User |
+| GET | `/api/admin/users` | Admin | List users |
+| GET | `/api/admin/users/{user_id}` | Admin | Get user details |
+| DELETE | `/api/admin/users/{user_id}` | Admin | Delete eligible user |
+| PATCH | `/api/admin/users/{user_id}/role` | Admin | Change role |
+| POST | `/api/admin/users/{user_id}/revoke` | Admin | Revoke user |
+| POST | `/api/admin/users/{user_id}/reactivate` | Admin | Reactivate Container User |
+| PUT | `/api/admin/users/{user_id}/quota` | Admin | Update quota |
+| GET | `/api/me/quota` | Authenticated | Own quota and allocations |
 
----
+Example invitation request:
 
-## 🔗 Starter Repository
+```json
+{
+  "email": "user@example.com",
+  "quota_ram_bytes": 2147483648,
+  "quota_cpu_cores": 2,
+  "quota_disk_bytes": 10737418240
+}
+```
 
-No starter code is provided, and no layout is prescribed. How you organize the repository — how backend concerns are separated, where the collector lives, how the frontend sits next to it — is one of the things we read, so we are not going to hand you a tree to fill in.
+A successful invitation returns HTTP 201 with the user's ID, email, role, invitation status and configured quotas.
 
-What has to be present, at whatever path makes sense to you:
+### Containers
 
-- `README.md` and `REPORT.md`
-- `.env.example`, with `.env` git-ignored
-- Dependency manifests for both halves of the project
-- A way to take an empty machine to an initialized database without manual SQL
+| Method | Endpoint | Permission | Description |
+| --- | --- | --- | --- |
+| GET | `/api/containers` | Authenticated | List visible containers |
+| GET | `/api/containers/{container_id}` | Assigned user or Admin | Container details |
+| POST | `/api/admin/containers` | Admin | Create managed container |
+| POST | `/api/admin/containers/adopt` | Admin | Adopt eligible external container |
+| POST | `/api/admin/containers/{container_id}/actions` | Admin | Lifecycle action |
+| DELETE | `/api/admin/containers/{container_id}` | Admin | Delete managed container |
+| GET | `/api/admin/containers/{container_id}/resources` | Admin | Read saved resource limits |
+| PATCH | `/api/admin/containers/{container_id}/resources` | Admin | Update resource limits |
 
-**Submission:** share the repository with `dev@roboticgen.co` and reply to the task email with the repo link and the demo recording link before the hard deadline.
+Example container creation request:
 
----
+```json
+{
+  "name": "demo-container",
+  "owner_id": "<existing-user-id>",
+  "image_alias": "24.04",
+  "ram_limit_bytes": 1073741824,
+  "cpu_limit_cores": 2,
+  "cpu_allowance_percent": 100,
+  "disk_limit_bytes": 10737418240,
+  "storage_pool": "<available-pool>",
+  "network_name": "<available-network>",
+  "ephemeral": false,
+  "autostart": false,
+  "description": "Testing container"
+}
+```
 
-## ❓ Clarifications & Assumptions
+Container creation validates every field and returns HTTP 201 on success.
 
-Where the spec is silent, **make a reasonable decision and document it in the report.** Do not block waiting for an answer. If something is genuinely ambiguous and blocking, email dev@roboticgen.co — expect a reply within one working day.
+Lifecycle action request:
 
----
+```json
+{
+  "action": "restart"
+}
+```
 
-## 📅 Deadlines
+The endpoint also supports the implemented start, stop, freeze and unfreeze actions.
 
-| Type | Date |
+Resource update request:
+
+```json
+{
+  "ram_limit_bytes": 2147483648,
+  "cpu_limit_cores": 2,
+  "cpu_allowance_percent": 100,
+  "disk_limit_bytes": 10737418240
+}
+```
+
+Managed disk shrinking is deliberately rejected.
+
+### Access assignments
+
+| Method | Endpoint | Permission | Description |
+| --- | --- | --- | --- |
+| GET | `/api/admin/containers/{container_id}/access` | Admin | List assignments |
+| POST | `/api/admin/containers/{container_id}/access/{user_id}` | Admin | Assign access |
+| DELETE | `/api/admin/containers/{container_id}/access/{user_id}` | Admin | Revoke access |
+| POST | `/api/admin/containers/{container_id}/transfer-owner` | Admin | Transfer ownership |
+
+### Metrics and terminal
+
+| Method | Endpoint | Permission | Description |
+| --- | --- | --- | --- |
+| GET | `/api/containers/{container_id}/metrics/latest` | Assigned user or Admin | Latest observation |
+| GET | `/api/containers/{container_id}/metrics/history?range=1h` | Assigned user or Admin | Historical observations |
+| POST | `/api/containers/{container_id}/exec` | Assigned user or Admin | Execute container command |
+
+Example terminal request:
+
+```json
+{
+  "command": "whoami"
+}
+```
+
+The response includes execution results, duration and the container execution identity.
+
+The terminal is non-interactive. It is not unrestricted host shell access.
+
+### Host and accounting
+
+| Method | Endpoint | Permission | Description |
+| --- | --- | --- | --- |
+| GET | `/api/admin/host` | Admin | LXD host information |
+| GET | `/api/admin/allocations` | Admin | Host allocation overview |
+
+### Error handling
+
+Common responses include:
+
+- `400 Bad Request` — malformed or invalid input.
+- `401 Unauthorized` — missing or expired session.
+- `403 Forbidden` — insufficient role or container access.
+- `404 Not Found` — missing application resource.
+- `409 Conflict` — an incompatible state or quota conflict.
+- `503 Service Unavailable` — required backend or LXD information unavailable.
+
+Specific response fields and failure conditions are defined by the Falcon resources and service implementations under `backend/app/`.
+
+## 12. Environment Variables
+
+| Variable | Purpose |
 | --- | --- |
-| Soft Deadline | 2026-08-13 |
-| Hard Deadline | 2026-08-15 |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth client identifier |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth client secret |
+| `GOOGLE_OAUTH_REDIRECT_URI` | Exact OAuth callback URI |
+| `SESSION_SECRET` | Key used for session-token hashing and CSRF derivation |
+| `SESSION_LIFETIME_SECONDS` | Application session expiration |
+| `COOKIE_SECURE` | Require HTTPS for session cookies |
+| `BOOTSTRAP_ADMIN_EMAIL` | Explicit initial Admin identity |
+| `SQLITE_DB_PATH` | SQLite database location |
+| `TINYFLUX_DB_PATH` | TinyFlux storage location |
+| `HOST_RAM_RESERVE_BYTES` | Host RAM kept unavailable for container allocation |
+| `HOST_CPU_RESERVE_THREADS` | Reserved logical CPU threads |
+| `HOST_DISK_RESERVE_BYTES` | Reserved host storage capacity |
+| `VERIFIED_DISK_QUOTA_POOLS` | Comma-separated pools approved for disk quota enforcement |
+| `METRICS_INTERVAL_SECONDS` | Collector polling interval |
+| `METRICS_RAW_RETENTION_HOURS` | Raw metrics retention |
+| `TERMINAL_CONTAINER_USER` | Restricted in-container execution account |
+| `TERMINAL_MAX_COMMAND_LENGTH` | Maximum submitted command length |
+| `TERMINAL_MAX_OUTPUT_BYTES` | Maximum output bytes per captured stream |
+| `TERMINAL_TIMEOUT_SECONDS` | Maximum command execution duration |
+| `TERMINAL_MAX_CONCURRENT_EXECS` | Maximum simultaneous container exec operations |
 
-The soft deadline is the target. Submitting between the two costs nothing on its own, but time management is visible to reviewers. Nothing is accepted after the hard deadline.
+The default values and development settings are provided in `.env.example`.
 
----
+The production template is `deploy/hsm.env.example`.
 
-## 📬 Contact
+Production configuration uses absolute database paths and a root-owned environment file with permission `0600`.
 
-For technical clarifications,
+## 13. Production Deployment
 
-📧 **dev@roboticgen.co**
+The tested deployment uses:
 
----
+- Dedicated Linux service account: `hsm`.
+- Source installation: `/opt/hobby-server-monitor/backend`.
+- Persistent state: `/var/lib/hobby-server-monitor`.
+- Protected configuration: `/etc/hobby-server-monitor/hsm.env`.
+- Static Astro files: `/srv/hobby-server-monitor/www`.
+- Falcon systemd service: `hobby-server-monitor-api`.
+- Collector systemd service: `hobby-server-monitor-collector`.
+- Database initializer: `hobby-server-monitor-db-init`.
+- Nginx for HTTPS and same-origin API routing.
 
-## References
+See [deploy/README.md](deploy/README.md) for the deployment architecture, paths, service configuration, tested restart behavior and verification evidence.
 
-- Astro — https://astro.build/
-- Falcon — https://falcon.readthedocs.io/en/stable/
-- pylxd — https://pylxd.readthedocs.io/en/latest/
-- TinyFlux — https://tinyflux.readthedocs.io/en/latest/index.html
-- SQLite3 — https://docs.python.org/3/library/sqlite3.html
-- LXD — https://canonical.com/lxd
-- Google OAuth 2.0 — https://developers.google.com/identity/protocols/oauth2
+### Rebuilding Astro
+
+```bash
+cd dashboard
+
+npm ci
+npm run build
+```
+
+Install the build into the configured Nginx static directory using the deployment procedure.
+
+### Service commands
+
+```bash
+sudo systemctl status hobby-server-monitor-api
+sudo systemctl status hobby-server-monitor-collector
+sudo systemctl status nginx
+```
+
+Logs:
+
+```bash
+sudo journalctl -u hobby-server-monitor-api -n 50 --no-pager
+sudo journalctl -u hobby-server-monitor-collector -n 50 --no-pager
+```
+
+Test HTTPS health:
+
+```bash
+curl --fail https://localhost:8443/api/health
+```
+
+The localhost HTTPS configuration uses a locally trusted mkcert certificate and is intended for testing on the same machine.
+
+Remote deployment requires an appropriate hostname and trusted HTTPS certificate.
+
+### Deployment verification
+
+The following were verified on Ubuntu:
+
+- Static Astro deployment through Nginx.
+- Falcon and collector startup through systemd.
+- Independent collector execution.
+- Automatic Falcon recovery after process termination.
+- Automatic collector recovery after process termination.
+- Automatic service startup after a host reboot.
+- SQLite and TinyFlux persistence.
+- Locally trusted HTTPS API and frontend access.
+- Production Admin bootstrap.
+- Resource benchmarking.
+
+Verification details are maintained in `deploy/README.md` and `REPORT.md`.
+
+## 14. Security Model
+
+### Main trust boundaries
+
+1. The browser is an untrusted client.
+2. The Falcon backend enforces authentication and authorization.
+3. The Falcon service accesses the privileged local LXD socket.
+4. LXD performs actual container operations.
+5. Managed containers remain separate from the host application.
+
+### Controls
+
+- Google OAuth identity verification.
+- Explicit Admin bootstrap email.
+- Invitation-based access for ordinary users.
+- Server-side sessions with revocation and expiration.
+- CSRF protection for state-changing requests.
+- Admin role checks and container-level authorization.
+- Strict server-side validation.
+- Quota and host capacity validation.
+- Restricted non-root container terminal identity.
+- Command length, execution-time and output limits.
+- Auditing of privileged operations.
+- Secure handling of OAuth and session secrets.
+- Reverse-proxy TLS for authenticated production access.
+
+### Residual risks
+
+Local LXD administrator access is highly privileged and can effectively provide host-level control.
+
+Running Falcon under a separate Linux service account limits ordinary filesystem access but does not eliminate the risk associated with access to the LXD administrative socket.
+
+The terminal provides real command execution inside containers. It is restricted to authorized containers and an in-container non-root identity, but it is not a complete sandbox against every possible container or kernel vulnerability.
+
+See [docs/DECISIONS.md](docs/DECISIONS.md) for the architecture rationale.
+
+## 15. Testing
+
+Run backend tests:
+
+```bash
+cd backend
+
+source .venv/bin/activate
+
+python -m unittest discover -s tests -v
+```
+
+Build frontend:
+
+```bash
+cd dashboard
+
+npm ci
+npm run build
+```
+
+Deployment verification:
+
+```bash
+./deploy/scripts/verify-reboot.sh
+```
+
+Resource benchmarking:
+
+```bash
+sudo python3 deploy/scripts/measure-resources.py no-tabs 60
+sudo python3 deploy/scripts/measure-resources.py one-tab 60
+sudo python3 deploy/scripts/measure-resources.py three-tabs 60
+```
+
+Run deployment scripts from the repository root.
+
+## 16. Measured Resource Footprint
+
+Resource measurements were collected on Ubuntu 24.04.4 LTS with an Intel Core i9-11900H, 16 logical CPU threads, approximately 15.4 GiB RAM and three LXD containers.
+
+Each scenario ran for approximately 60 seconds.
+
+| Scenario | Combined average service RAM | Combined service CPU |
+| --- | ---: | ---: |
+| No browser tabs | 99.30 MiB | 0.318% |
+| One dashboard tab | 100.24 MiB | 0.552% |
+| Three dashboard tabs | 102.18 MiB | 0.496% |
+
+The memory figures are sums of systemd control-group memory readings for Falcon, the metrics collector and Nginx.
+
+CPU percentages use one logical CPU as 100%.
+
+The complete measurement commands, per-service figures, storage growth and limitations are documented in [REPORT.md](REPORT.md).
+
+## 17. Known Limitations
+
+- Container creation currently restricts images to the approved Ubuntu 24.04 alias.
+- Arbitrary inherited LXD profiles are deliberately not supported during managed-container creation.
+- The implementation currently targets the LXD default project.
+- Arbitrary container renaming is not implemented.
+- Managed root-disk shrinking is rejected.
+- The terminal is non-interactive rather than a full PTY shell.
+- The deployment was verified using localhost HTTPS; externally accessible HTTPS hosting still requires site-specific configuration.
+- Long-duration storage behavior has not been benchmarked for a full month.
+- Resource benchmarks are short measurements from one development machine.
+- LXD privilege separation remains a significant residual security consideration.
+- A dedicated, separately isolated LXD operations broker is not implemented.
+
+Additional outstanding work and unverified cases are tracked in `TODO.md`.
+
+## 18. Documentation
+
+- [Deployment and recovery evidence](deploy/README.md)
+- [Architecture and design decisions](docs/DECISIONS.md)
+- [Project specification](docs/PROJECT_SPEC.md)
+- [Final report and resource benchmarks](REPORT.md)
+- [Implementation and verification checklist](TODO.md)
+
+Repository:
+
+https://github.com/birajithk/Hobby-Server-Monitor
+
