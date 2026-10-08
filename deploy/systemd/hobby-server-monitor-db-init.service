@@ -1,0 +1,28 @@
+[Unit]
+Description=Hobby Server Monitor database initialization
+After=local-fs.target
+RequiresMountsFor=/var/lib/hobby-server-monitor
+
+[Service]
+Type=oneshot
+
+User=hsm
+Group=hsm
+
+WorkingDirectory=/opt/hobby-server-monitor/backend
+
+EnvironmentFile=/etc/hobby-server-monitor/hsm.env
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/opt/hobby-server-monitor/backend/.venv/bin/python -m app.db.init_db
+
+RemainAfterExit=yes
+
+UMask=0077
+NoNewPrivileges=true
+
+ProtectSystem=strict
+ReadWritePaths=/var/lib/hobby-server-monitor
+
+ProtectHome=true
+PrivateTmp=true

@@ -1,0 +1,38 @@
+[Unit]
+Description=Hobby Server Monitor TinyFlux collector
+
+Wants=network-online.target
+
+Requires=hobby-server-monitor-db-init.service
+
+After=network-online.target hobby-server-monitor-db-init.service
+
+[Service]
+Type=simple
+
+User=hsm
+Group=hsm
+SupplementaryGroups=lxd
+
+WorkingDirectory=/opt/hobby-server-monitor/backend
+
+EnvironmentFile=/etc/hobby-server-monitor/hsm.env
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/opt/hobby-server-monitor/backend/.venv/bin/python -m app.collector
+
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+UMask=0077
+NoNewPrivileges=true
+
+ProtectSystem=strict
+ReadWritePaths=/var/lib/hobby-server-monitor
+
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
