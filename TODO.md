@@ -324,6 +324,9 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Verify recovery after a host reboot.
 - [x] Verify that the application works without development servers.
 - [ ] Verify authenticated browser access through production HTTPS.
+- [x] Verify locally trusted HTTPS through Nginx; Falcon and Astro both returned HTTP 200 with certificate validation enabled (2026-10-08).
+- [x] Verify the production Google OAuth configuration and bootstrap Admin account; the protected configuration checks passed and SQLite contained one active Admin (2026-10-08).
+- [x] Verify authenticated Admin browser access through the localhost HTTPS deployment (2026-10-08).
 - [x] Verify automatic Falcon service recovery after an unexpected SIGKILL; systemd restarted Gunicorn, the restart counter increased, and the Nginx-proxied API health check passed (2026-10-08).
 
 ## Phase 11 — Resource Benchmarking (P0)
