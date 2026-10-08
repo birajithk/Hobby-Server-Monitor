@@ -310,18 +310,20 @@ A task is complete only when its implementation has been verified. Checkmarks be
 
 ## Phase 10 — Deployment (P1)
 
-- [ ] Create the required service-account setup instructions.
-- [ ] Configure the deployment environment.
-- [ ] Add the Falcon systemd service.
-- [ ] Add the independent collector systemd service.
-- [ ] Configure Astro deployment.
-- [ ] Configure appropriate startup ordering.
-- [ ] Configure and test systemd restart policies for Falcon and the independent collector (no deployment service units are committed yet).
-- [ ] Document service logging.
-- [ ] Verify a fresh database initialization.
-- [ ] Verify service recovery.
+- [ ] Create complete service-account setup instructions in the repository documentation.
+- [x] Configure the deployment environment and protected production directories.
+- [x] Add the Falcon systemd service.
+- [x] Add the independent collector systemd service.
+- [x] Configure static Astro deployment through Nginx.
+- [x] Configure systemd startup ordering and database initialization dependency.
+- [ ] Fully verify automatic systemd restart policies for both Falcon and the independent collector.
+- [ ] Document service logging and troubleshooting.
+- [x] Verify a fresh database initialization.
+- [ ] Complete service recovery verification, including unexpected collector failure.
 - [ ] Verify recovery after a host reboot.
-- [ ] Verify that the application works without development servers.
+- [x] Verify that the application works without development servers.
+- [ ] Verify authenticated browser access through production HTTPS.
+- [x] Verify automatic Falcon service recovery after an unexpected SIGKILL; systemd restarted Gunicorn, the restart counter increased, and the Nginx-proxied API health check passed (2026-10-08).
 
 ## Phase 11 — Resource Benchmarking (P0)
 
@@ -380,7 +382,7 @@ Optional enhancements must not delay baseline security or functionality.
 - [ ] Update DECISIONS.md with any actual design changes.
 - [ ] Verify that TODO.md reflects the real completion status.
 - [ ] Confirm all baseline features work end to end.
-- [ ] Confirm the collector runs independently.
+- [x] Confirm the collector runs independently.
 - [x] Confirm historical metrics survive a restart.
 - [ ] Confirm resource measurements are published.
 - [ ] Confirm all configuration variables are documented.
