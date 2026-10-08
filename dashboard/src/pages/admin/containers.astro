@@ -1,6 +1,6 @@
 
 ---
-const title = "Container Management — Hobby Server Monitor";
+const title = "Manage Containers — Hobby Server Monitor";
 ---
 
 <!doctype html>
@@ -29,272 +29,500 @@ const title = "Container Management — Hobby Server Monitor";
           <a href="/admin/users" class="nav-item">Users</a>
         </nav>
 
-        <div id="account" class="account">Loading account...</div>
+        <div id="account" class="account">
+          Loading account...
+        </div>
       </aside>
 
       <main>
+        <!-- PAGE HEADER -->
         <header class="page-header">
           <div>
             <div class="eyebrow">Administration</div>
-            <h2>Container access & ownership</h2>
+            <h2>Manage containers</h2>
             <p>
-              Assign users, revoke access, and transfer ownership
-              with server-side quota validation.
+              Control container access, ownership,
+              resource limits and lifecycle.
             </p>
           </div>
 
-          <a href="/admin/containers/new" class="create-container-link">
-            + Create container
-          </a>
+          <div class="header-actions">
+            <a
+              href="/admin/containers/new"
+              class="create-container-link"
+            >
+              + Create container
+            </a>
 
-          <button id="refresh-button" type="button">
-            Refresh
-          </button>
+            <button id="refresh-button" type="button">
+              Refresh
+            </button>
+          </div>
         </header>
 
-        <div id="notice" class="message hidden" role="status"
-          aria-live="polite"></div>
+        <div
+          id="notice"
+          class="message hidden"
+          role="status"
+          aria-live="polite"
+        ></div>
 
-        <section class="panel" id="host-allocation-panel">
-          <h3>Host allocation overview</h3>
-
-          <p class="muted">
-            Host capacity, reserved resources and committed
-            allocations. Stopped managed containers still count.
-          </p>
-
-          <div class="grid">
-            <div class="allocation-card">
-              <h4>RAM</h4>
-              <div id="allocation-ram">Loading...</div>
+        <!-- COMPACT HOST ALLOCATION OVERVIEW -->
+        <section
+          class="host-overview"
+          id="host-allocation-panel"
+        >
+          <div class="host-overview-header">
+            <div class="host-overview-heading">
+              <h3>Host allocation</h3>
+              <span class="muted">
+                Overall server resource availability
+              </span>
             </div>
 
-            <div class="allocation-card">
-              <h4>CPU</h4>
-              <div id="allocation-cpu">Loading...</div>
-            </div>
-
-            <div class="allocation-card">
-              <h4>Containers</h4>
-              <div id="allocation-containers">Loading...</div>
-            </div>
-
-            <div class="allocation-card">
-              <h4>Allocation status</h4>
-              <div id="allocation-status">Loading...</div>
-            </div>
-          </div>
-
-          <h4>Storage pool allocations</h4>
-
-          <div id="allocation-storage">
-            Loading storage pools...
-          </div>
-
-          <h4>Allocation blockers</h4>
-
-          <ul id="allocation-blockers">
-            <li>Loading...</li>
-          </ul>
-
-          <button id="refresh-allocations-button" type="button">
-            Refresh allocation overview
-          </button>
-        </section>
-
-        <section class="panel">
-          <h3>Select managed container</h3>
-
-          <label for="container-select">Container</label>
-          <select id="container-select">
-            <option value="">Loading containers...</option>
-          </select>
-
-          <p id="container-summary" class="muted">
-            Select a managed container.
-          </p>
-
-          <p id="owner-summary" class="muted"></p>
-        </section>
-
-        <div class="grid">
-          <section class="panel">
-            <h3>Assign container access</h3>
-            <p class="muted">
-              Additional access does not charge the user's quota.
-            </p>
-
-            <label for="assignment-user">Active Container User</label>
-            <select id="assignment-user" disabled>
-              <option value="">Select a user</option>
-            </select>
-
-            <button id="assign-button" type="button" disabled>
-              Assign access
+            <button
+              id="refresh-allocations-button"
+              type="button"
+              class="secondary-button"
+            >
+              Refresh allocations
             </button>
-          </section>
+          </div>
 
+          <div class="host-stats">
+            <div class="host-stat">
+              <span class="stat-label">RAM</span>
+              <strong id="allocation-ram">
+                Loading...
+              </strong>
+              <span class="stat-description">
+                Allocated / Total
+              </span>
+            </div>
+
+            <div class="host-stat">
+              <span class="stat-label">CPU</span>
+              <strong id="allocation-cpu">
+                Loading...
+              </strong>
+              <span class="stat-description">
+                Allocated / Total threads
+              </span>
+            </div>
+
+            <div class="host-stat">
+              <span class="stat-label">Containers</span>
+              <strong id="allocation-containers">
+                Loading...
+              </strong>
+              <span class="stat-description">
+                Managed / Unmanaged
+              </span>
+            </div>
+
+            <div class="host-stat">
+              <span class="stat-label">Allocation status</span>
+              <strong id="allocation-status">
+                Loading...
+              </strong>
+              <span class="stat-description">
+                Host accounting
+              </span>
+            </div>
+          </div>
+
+          <details class="allocation-details">
+            <summary>
+              View detailed host allocation
+            </summary>
+
+            <div class="allocation-details-content">
+              <div class="allocation-detail-grid">
+                <div class="allocation-card">
+                  <h4>RAM allocation</h4>
+                  <p id="allocation-ram-details">
+                    Loading...
+                  </p>
+                </div>
+
+                <div class="allocation-card">
+                  <h4>CPU allocation</h4>
+                  <p id="allocation-cpu-details">
+                    Loading...
+                  </p>
+                </div>
+              </div>
+
+              <h4>Storage pool allocations</h4>
+
+              <div id="allocation-storage">
+                Loading storage pools...
+              </div>
+
+              <h4>Allocation blockers</h4>
+
+              <ul id="allocation-blockers">
+                <li>Loading...</li>
+              </ul>
+
+              <p class="muted">
+                Stopped managed containers still count
+                towards committed host allocations.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        <!-- CONTAINER SELECTION -->
+        <section class="panel container-selector-panel">
+          <div class="container-selector-heading">
+            <div>
+              <div class="section-eyebrow">
+                SELECTED CONTAINER
+              </div>
+
+              <h3>Managed container</h3>
+
+              <p id="container-summary" class="muted">
+                Select a managed container.
+              </p>
+            </div>
+
+            <div class="container-select-wrapper">
+              <label for="container-select">
+                Container
+              </label>
+
+              <select id="container-select">
+                <option value="">
+                  Loading containers...
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="selected-container-meta">
+            <span
+              id="owner-summary"
+              class="muted"
+            ></span>
+
+            <div class="selected-state">
+              <span class="muted">Current state:</span>
+              <strong id="selected-container-status">
+                —
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACCESS MANAGEMENT -->
+        <div class="section-heading">
+          <h3>Access management</h3>
+          <p class="muted">
+            Review and manage who can access this container.
+          </p>
+        </div>
+
+        <div class="management-grid">
+          <!-- CURRENT ACCESS -->
           <section class="panel">
             <h3>Current access</h3>
+
             <p class="muted">
-              An owner's access cannot be removed without
-              transferring ownership.
+              An owner's access cannot be removed
+              without transferring ownership.
             </p>
 
             <ul id="access-list" class="access-list">
               <li>Loading...</li>
             </ul>
           </section>
-        </div>
 
-        <section class="panel">
-          <h3>Transfer ownership</h3>
-
-          <p class="muted">
-            The receiving owner's RAM, CPU and disk quotas are
-            validated by Falcon before ownership changes.
-          </p>
-
-          <label for="new-owner">New owner</label>
-          <select id="new-owner" disabled>
-            <option value="">Select a user</option>
-          </select>
-
-          <label class="checkbox-row" for="keep-access">
-            <input id="keep-access" type="checkbox" checked />
-            Keep the previous owner's container access
-          </label>
-
-          <button id="transfer-button" type="button" disabled>
-            Transfer ownership
-          </button>
-        </section>
-
-        <section class="panel" id="resource-panel">
-          <h3>Edit resource limits</h3>
-
-          <p class="muted">
-            Edit the selected managed container's allocated
-            resources. Disk limits can increase but cannot decrease.
-          </p>
-
-          <p id="resource-status" class="muted">
-            Select a container to load saved limits.
-          </p>
-
-          <form id="resource-form">
-            <div class="grid">
-              <div>
-                <label for="resource-ram">RAM (GiB)</label>
-                <input
-                  id="resource-ram"
-                  type="number"
-                  min="0.25"
-                  step="any"
-                  required
-                />
-              </div>
-
-              <div>
-                <label for="resource-cpu">CPU cores</label>
-                <input
-                  id="resource-cpu"
-                  type="number"
-                  min="1"
-                  step="1"
-                  required
-                />
-              </div>
-
-              <div>
-                <label for="resource-allowance">
-                  CPU allowance (%)
-                </label>
-                <input
-                  id="resource-allowance"
-                  type="number"
-                  min="1"
-                  max="100"
-                  step="1"
-                  required
-                />
-              </div>
-
-              <div>
-                <label for="resource-disk">Disk (GiB)</label>
-                <input
-                  id="resource-disk"
-                  type="number"
-                  min="0.25"
-                  step="any"
-                  required
-                />
-              </div>
-            </div>
-
-            <p id="resource-owner-budget" class="muted"></p>
-            <p id="resource-host-budget" class="muted"></p>
-
-            <button
-              id="save-resource-button"
-              type="submit"
-              disabled
-            >
-              Save resource limits
-            </button>
-          </form>
-        </section>
-
-        <section class="panel" id="lifecycle-panel">
-          <h3>Container lifecycle</h3>
-
-          <p class="muted">
-            Start, stop, restart, freeze or unfreeze the selected
-            managed container.
-          </p>
-
-          <div class="lifecycle-summary">
-            <div>
-              <span>Selected container</span>
-              <strong id="lifecycle-name">—</strong>
-            </div>
-
-            <div>
-              <span>Current state</span>
-              <strong id="lifecycle-status">—</strong>
-            </div>
-          </div>
-
-          <div class="lifecycle-actions">
-            <button type="button" data-lifecycle-action="start" disabled>
-              Start
-            </button>
-
-            <button type="button" data-lifecycle-action="stop" disabled>
-              Stop
-            </button>
-
-            <button type="button" data-lifecycle-action="restart" disabled>
-              Restart
-            </button>
-
-            <button type="button" data-lifecycle-action="freeze" disabled>
-              Freeze
-            </button>
-
-            <button type="button" data-lifecycle-action="unfreeze" disabled>
-              Unfreeze
-            </button>
-          </div>
-
-          <div class="deletion-section">
-            <h4>Danger zone</h4>
+          <!-- ASSIGN ACCESS -->
+          <section class="panel">
+            <h3>Assign container access</h3>
 
             <p class="muted">
-              Permanently deleting a container destroys its LXD instance
-              and filesystem. Its application allocation and access records
-              will also be removed.
+              Additional access does not charge
+              the user's quota.
             </p>
+
+            <label for="assignment-user">
+              Active Container User
+            </label>
+
+            <select id="assignment-user" disabled>
+              <option value="">
+                Select a user
+              </option>
+            </select>
+
+            <button
+              id="assign-button"
+              type="button"
+              class="primary-button"
+              disabled
+            >
+              Assign access
+            </button>
+          </section>
+        </div>
+
+        <!-- CONTAINER OPERATIONS -->
+        <div class="section-heading">
+          <h3>Container operations</h3>
+          <p class="muted">
+            Configure allocated resources and
+            manage the container's running state.
+          </p>
+        </div>
+
+        <div class="management-grid">
+          <!-- RESOURCE LIMITS -->
+          <section class="panel" id="resource-panel">
+            <h3>Edit resource limits</h3>
+
+            <p class="muted">
+              Edit the selected managed container's
+              allocated resources. Disk limits can
+              increase but cannot decrease.
+            </p>
+
+            <p id="resource-status" class="muted">
+              Select a container to load saved limits.
+            </p>
+
+            <form id="resource-form">
+              <div class="resource-grid">
+                <div>
+                  <label for="resource-ram">
+                    RAM (GiB)
+                  </label>
+
+                  <input
+                    id="resource-ram"
+                    type="number"
+                    min="0.25"
+                    step="any"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label for="resource-cpu">
+                    CPU cores
+                  </label>
+
+                  <input
+                    id="resource-cpu"
+                    type="number"
+                    min="1"
+                    step="1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label for="resource-allowance">
+                    CPU allowance (%)
+                  </label>
+
+                  <input
+                    id="resource-allowance"
+                    type="number"
+                    min="1"
+                    max="100"
+                    step="1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label for="resource-disk">
+                    Disk (GiB)
+                  </label>
+
+                  <input
+                    id="resource-disk"
+                    type="number"
+                    min="0.25"
+                    step="any"
+                    required
+                  />
+                </div>
+              </div>
+
+              <details class="resource-budget-details">
+                <summary>
+                  View quota and allocation budgets
+                </summary>
+
+                <div class="budget-content">
+                  <p
+                    id="resource-owner-budget"
+                    class="muted"
+                  ></p>
+
+                  <p
+                    id="resource-host-budget"
+                    class="muted"
+                  ></p>
+                </div>
+              </details>
+
+              <button
+                id="save-resource-button"
+                type="submit"
+                class="primary-button"
+                disabled
+              >
+                Save resource limits
+              </button>
+            </form>
+          </section>
+
+          <!-- LIFECYCLE -->
+          <section class="panel" id="lifecycle-panel">
+            <h3>Container lifecycle</h3>
+
+            <p class="muted">
+              Start, stop, restart, freeze or unfreeze
+              the selected managed container.
+            </p>
+
+            <div class="lifecycle-summary">
+              <div>
+                <span>Selected container</span>
+
+                <strong id="lifecycle-name">
+                  —
+                </strong>
+              </div>
+
+              <div>
+                <span>Current state</span>
+
+                <strong id="lifecycle-status">
+                  —
+                </strong>
+              </div>
+            </div>
+
+            <div class="lifecycle-actions">
+              <button
+                type="button"
+                data-lifecycle-action="start"
+                class="start-button"
+                disabled
+              >
+                Start
+              </button>
+
+              <button
+                type="button"
+                data-lifecycle-action="stop"
+                disabled
+              >
+                Stop
+              </button>
+
+              <button
+                type="button"
+                data-lifecycle-action="restart"
+                disabled
+              >
+                Restart
+              </button>
+
+              <button
+                type="button"
+                data-lifecycle-action="freeze"
+                disabled
+              >
+                Freeze
+              </button>
+
+              <button
+                type="button"
+                data-lifecycle-action="unfreeze"
+                disabled
+              >
+                Unfreeze
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- OWNERSHIP MANAGEMENT -->
+        <div class="section-heading">
+          <h3>Ownership management</h3>
+          <p class="muted">
+            Transfer responsibility for a container
+            to another active user.
+          </p>
+        </div>
+
+        <section class="panel ownership-panel">
+          <div class="ownership-content">
+            <div class="ownership-description">
+              <h3>Transfer ownership</h3>
+
+              <p class="muted">
+                The receiving owner's RAM, CPU and
+                disk quotas are validated by Falcon
+                before ownership changes.
+              </p>
+            </div>
+
+            <div class="ownership-form">
+              <label for="new-owner">
+                New owner
+              </label>
+
+              <select id="new-owner" disabled>
+                <option value="">
+                  Select a user
+                </option>
+              </select>
+
+              <label
+                class="checkbox-row"
+                for="keep-access"
+              >
+                <input
+                  id="keep-access"
+                  type="checkbox"
+                  checked
+                />
+                Keep the previous owner's
+                container access
+              </label>
+
+              <button
+                id="transfer-button"
+                type="button"
+                disabled
+              >
+                Transfer ownership
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- DANGER ZONE -->
+        <section class="panel danger-panel">
+          <div class="danger-panel-content">
+            <div>
+              <h3>Danger zone</h3>
+
+              <p class="muted">
+                Permanently deleting a container
+                destroys its LXD instance and filesystem.
+                Its application allocation and access
+                records will also be removed.
+              </p>
+            </div>
 
             <button
               id="delete-container-button"
@@ -309,6 +537,7 @@ const title = "Container Management — Hobby Server Monitor";
       </main>
     </div>
 
+    <!-- APPLICATION LOGIC -->
     <script>
       import {
         getCurrentUser,
@@ -326,7 +555,8 @@ const title = "Container Management — Hobby Server Monitor";
         updateContainerResourceLimits,
       } from "../../lib/api.js";
 
-      const $ = (selector) => document.querySelector(selector);
+      const $ = (selector) =>
+        document.querySelector(selector);
 
       const containerSelect = $("#container-select");
       const assignmentSelect = $("#assignment-user");
@@ -361,7 +591,7 @@ const title = "Container Management — Hobby Server Monitor";
         return Math.max(
           0,
           Number(user?.quota?.[key] || 0) -
-          Number(user?.allocation?.[key] || 0),
+            Number(user?.allocation?.[key] || 0),
         );
       }
 
@@ -398,7 +628,9 @@ const title = "Container Management — Hobby Server Monitor";
         select.replaceChildren(new Option(label, ""));
 
         for (const record of records) {
-          select.add(new Option(record.label, record.value));
+          select.add(
+            new Option(record.label, record.value),
+          );
         }
       }
 
@@ -411,28 +643,49 @@ const title = "Container Management — Hobby Server Monitor";
       };
 
       function selectedManagedContainer() {
-        return managedContainers.find(
-          (container) =>
-            container.id === containerSelect.value &&
-            container.managed !== false,
-        ) || null;
+        return (
+          managedContainers.find(
+            (container) =>
+              container.id === containerSelect.value &&
+              container.managed !== false,
+          ) || null
+        );
       }
 
       function updateLifecycleControls() {
         const container = selectedManagedContainer();
 
-        const name = container?.name || container?.lxd_name || "—";
-        const status = container?.status || "Unknown";
+        const name =
+          container?.name ||
+          container?.lxd_name ||
+          "—";
 
-        document.querySelector("#lifecycle-name").textContent = name;
-        document.querySelector("#lifecycle-status").textContent = status;
+        const status =
+          container?.status || "Unknown";
+
+        $("#lifecycle-name").textContent = name;
+        $("#lifecycle-status").textContent = status;
+
+        // Update status in main container selector.
+        const selectedStatus = $(
+          "#selected-container-status",
+        );
+
+        if (selectedStatus) {
+          selectedStatus.textContent = status;
+
+          selectedStatus.className =
+            `container-status status-${status.toLowerCase()}`;
+        }
 
         document.querySelectorAll(
           "[data-lifecycle-action]",
         ).forEach((button) => {
-          const action = button.dataset.lifecycleAction;
+          const action =
+            button.dataset.lifecycleAction;
 
-          const allowedStates = lifecyclePermissions[action] || [];
+          const allowedStates =
+            lifecyclePermissions[action] || [];
 
           button.disabled =
             busy ||
@@ -440,30 +693,41 @@ const title = "Container Management — Hobby Server Monitor";
             !allowedStates.includes(status);
         });
 
-        document.querySelector(
-          "#delete-container-button",
-        ).disabled = busy || !container;
+        $("#delete-container-button").disabled =
+          busy || !container;
       }
 
       function syncButtons() {
         $("#refresh-allocations-button").disabled = busy;
-        saveResourceButton.disabled =
-          busy || resourceLoading || !resourceLimits;
 
-        containerSelect.disabled = busy || managedContainers.length === 0;
+        saveResourceButton.disabled =
+          busy ||
+          resourceLoading ||
+          !resourceLimits;
+
+        containerSelect.disabled =
+          busy || managedContainers.length === 0;
+
         refreshButton.disabled = busy;
 
         assignmentSelect.disabled =
           busy || assignmentSelect.options.length <= 1;
+
         ownerSelect.disabled =
           busy || ownerSelect.options.length <= 1;
 
-        assignButton.disabled = busy || !assignmentSelect.value;
-        transferButton.disabled = busy || !ownerSelect.value;
+        assignButton.disabled =
+          busy || !assignmentSelect.value;
 
-        for (const button of accessList.querySelectorAll("button")) {
+        transferButton.disabled =
+          busy || !ownerSelect.value;
+
+        for (const button of accessList.querySelectorAll(
+          "button",
+        )) {
           button.disabled = busy;
         }
+
         updateLifecycleControls();
       }
 
@@ -480,7 +744,9 @@ const title = "Container Management — Hobby Server Monitor";
         );
 
         $("#owner-summary").textContent =
-          `Current owner: ${owner ? userLabel(owner) : access.owner_id}`;
+          `Current owner: ${
+            owner ? userLabel(owner) : access.owner_id
+          }`;
 
         accessList.replaceChildren();
 
@@ -488,37 +754,46 @@ const title = "Container Management — Hobby Server Monitor";
           const item = document.createElement("li");
           const label = document.createElement("span");
 
-          label.textContent = `${user.name || user.email} — ${
-            user.is_owner ? "Owner" : "Assigned user"
-          } (${user.status})`;
+          label.textContent =
+            `${user.name || user.email} — ` +
+            `${
+              user.is_owner
+                ? "Owner"
+                : "Assigned user"
+            } (${user.status})`;
 
           item.append(label);
 
           if (!user.is_owner) {
-            const remove = document.createElement("button");
+            const remove =
+              document.createElement("button");
+
             remove.type = "button";
             remove.className = "danger";
             remove.textContent = "Remove access";
 
-            remove.addEventListener("click", async () => {
-              if (
-                !window.confirm(
-                  `Remove ${user.email}'s access to this container?`,
-                )
-              ) {
-                return;
-              }
+            remove.addEventListener(
+              "click",
+              async () => {
+                if (
+                  !window.confirm(
+                    `Remove ${user.email}'s access to this container?`,
+                  )
+                ) {
+                  return;
+                }
 
-              await runMutation(
-                () =>
-                  revokeContainerAccess(
-                    containerSelect.value,
-                    user.id,
-                    csrfToken,
-                  ),
-                "Container access removed.",
-              );
-            });
+                await runMutation(
+                  () =>
+                    revokeContainerAccess(
+                      containerSelect.value,
+                      user.id,
+                      csrfToken,
+                    ),
+                  "Container access removed.",
+                );
+              },
+            );
 
             item.append(remove);
           }
@@ -528,12 +803,17 @@ const title = "Container Management — Hobby Server Monitor";
 
         if (!accessList.children.length) {
           const empty = document.createElement("li");
-          empty.textContent = "No access records found.";
+
+          empty.textContent =
+            "No access records found.";
+
           accessList.append(empty);
         }
 
         const assignedIds = new Set(
-          (access.users || []).map((user) => user.id),
+          (access.users || []).map(
+            (user) => user.id,
+          ),
         );
 
         const assignable = allUsers
@@ -548,7 +828,11 @@ const title = "Container Management — Hobby Server Monitor";
             label: userLabel(user),
           }));
 
-        setOptions(assignmentSelect, assignable, "Select a user");
+        setOptions(
+          assignmentSelect,
+          assignable,
+          "Select a user",
+        );
 
         const possibleOwners = allUsers
           .filter(
@@ -561,7 +845,11 @@ const title = "Container Management — Hobby Server Monitor";
             label: userLabel(user),
           }));
 
-        setOptions(ownerSelect, possibleOwners, "Select new owner");
+        setOptions(
+          ownerSelect,
+          possibleOwners,
+          "Select new owner",
+        );
 
         syncButtons();
       }
@@ -581,9 +869,10 @@ const title = "Container Management — Hobby Server Monitor";
         syncButtons();
 
         try {
-          const result = await getContainerResourceLimits(
-            containerId,
-          );
+          const result =
+            await getContainerResourceLimits(
+              containerId,
+            );
 
           if (containerSelect.value !== containerId) {
             return;
@@ -591,20 +880,25 @@ const title = "Container Management — Hobby Server Monitor";
 
           resourceLimits = result;
 
-          $("#resource-ram").value =
-            String(result.ram_limit_bytes / GiB);
+          $("#resource-ram").value = String(
+            result.ram_limit_bytes / GiB,
+          );
 
-          $("#resource-cpu").value =
-            String(result.cpu_limit_cores);
+          $("#resource-cpu").value = String(
+            result.cpu_limit_cores,
+          );
 
-          $("#resource-allowance").value =
-            String(result.cpu_allowance_percent);
+          $("#resource-allowance").value = String(
+            result.cpu_allowance_percent,
+          );
 
-          $("#resource-disk").value =
-            String(result.disk_limit_bytes / GiB);
+          $("#resource-disk").value = String(
+            result.disk_limit_bytes / GiB,
+          );
 
-          $("#resource-disk").min =
-            String(result.disk_limit_bytes / GiB);
+          $("#resource-disk").min = String(
+            result.disk_limit_bytes / GiB,
+          );
 
           $("#resource-status").textContent =
             `Saved limits loaded for ${result.name}. ` +
@@ -614,7 +908,8 @@ const title = "Container Management — Hobby Server Monitor";
         } catch (error) {
           if (containerSelect.value === containerId) {
             $("#resource-status").textContent =
-              error?.message || "Unable to load resource limits.";
+              error?.message ||
+              "Unable to load resource limits.";
           }
         } finally {
           resourceLoading = false;
@@ -628,69 +923,112 @@ const title = "Container Management — Hobby Server Monitor";
         }
 
         const owner = allUsers.find(
-          (user) => user.id === resourceLimits.owner_id,
+          (user) =>
+            user.id === resourceLimits.owner_id,
         );
 
-        const pool = allocationReport.storage_pools?.find(
-          (item) => item.name === resourceLimits.storage_pool,
+        const pool =
+          allocationReport.storage_pools?.find(
+            (item) =>
+              item.name === resourceLimits.storage_pool,
+          );
+
+        const ownerRemainingRam = remainingQuota(
+          owner,
+          "ram_bytes",
+        );
+
+        const ownerRemainingCpu = remainingQuota(
+          owner,
+          "cpu_cores",
+        );
+
+        const ownerRemainingDisk = remainingQuota(
+          owner,
+          "disk_bytes",
+        );
+
+        const hostRemainingRam = Number(
+          allocationReport.memory?.allocatable_bytes || 0,
+        );
+
+        const hostRemainingCpu = Number(
+          allocationReport.cpu?.allocatable_threads || 0,
+        );
+
+        const hostRemainingDisk = Number(
+          pool?.allocatable_bytes || 0,
         );
 
         const ownerRam =
-          remainingQuota(owner, "ram_bytes") +
+          ownerRemainingRam +
           resourceLimits.ram_limit_bytes;
 
         const ownerCpu =
-          remainingQuota(owner, "cpu_cores") +
+          ownerRemainingCpu +
           resourceLimits.cpu_limit_cores;
 
         const ownerDisk =
-          remainingQuota(owner, "disk_bytes") +
+          ownerRemainingDisk +
           resourceLimits.disk_limit_bytes;
 
         const hostRam =
-          Number(allocationReport.memory.allocatable_bytes) +
+          hostRemainingRam +
           resourceLimits.ram_limit_bytes;
 
         const hostCpu =
-          Number(allocationReport.cpu.allocatable_threads) +
+          hostRemainingCpu +
           resourceLimits.cpu_limit_cores;
 
         const hostDisk =
-          Number(pool?.allocatable_bytes || 0) +
+          hostRemainingDisk +
           resourceLimits.disk_limit_bytes;
 
         $("#resource-owner-budget").textContent =
-          `Owner maximum including current allocation: ` +
+          `Owner remaining quota: ` +
+          `RAM ${formatGiB(ownerRemainingRam)}, ` +
+          `CPU ${ownerRemainingCpu}, ` +
+          `disk ${formatGiB(ownerRemainingDisk)}. ` +
+          `Maximum for this container: ` +
           `RAM ${formatGiB(ownerRam)}, ` +
           `CPU ${ownerCpu}, ` +
           `disk ${formatGiB(ownerDisk)}.`;
 
         $("#resource-host-budget").textContent =
-          `Host maximum including current allocation: ` +
+          `Host remaining allocation budget: ` +
+          `RAM ${formatGiB(hostRemainingRam)}, ` +
+          `CPU ${hostRemainingCpu}, ` +
+          `disk ${formatGiB(hostRemainingDisk)}. ` +
+          `Maximum for this container: ` +
           `RAM ${formatGiB(hostRam)}, ` +
           `CPU ${hostCpu}, ` +
           `disk ${formatGiB(hostDisk)}. ` +
           `Storage pool: ${resourceLimits.storage_pool}.`;
 
-        $("#resource-ram").max =
-          String(Math.min(ownerRam, hostRam) / GiB);
+        $("#resource-ram").max = String(
+          Math.min(ownerRam, hostRam) / GiB,
+        );
 
-        $("#resource-cpu").max =
-          String(Math.min(ownerCpu, hostCpu));
+        $("#resource-cpu").max = String(
+          Math.min(ownerCpu, hostCpu),
+        );
 
-        $("#resource-disk").max =
-          String(Math.min(ownerDisk, hostDisk) / GiB);
+        $("#resource-disk").max = String(
+          Math.min(ownerDisk, hostDisk) / GiB,
+        );
 
         const blocked =
           (allocationReport.blockers || []).length > 0;
 
-        $("#resource-status").textContent =
-          blocked
-            ? "Host allocation blockers exist. Resource increases are not permitted until reconciliation."
-            : `Saved limits loaded for ${resourceLimits.name}.`;
+        $("#resource-status").textContent = blocked
+          ? "Host allocation blockers exist. Resource increases are not permitted until reconciliation."
+          : `Saved limits loaded for ${resourceLimits.name}.`;
 
         saveResourceButton.disabled =
-          busy || resourceLoading || !owner || !pool;
+          busy ||
+          resourceLoading ||
+          !owner ||
+          !pool;
       }
 
       async function loadAccess() {
@@ -705,9 +1043,9 @@ const title = "Container Management — Hobby Server Monitor";
           return;
         }
 
-        const result = await getAdminContainerAccess(id);
+        const result =
+          await getAdminContainerAccess(id);
 
-        // Avoid rendering an outdated request after selection changes.
         if (containerSelect.value !== id) {
           return;
         }
@@ -715,6 +1053,8 @@ const title = "Container Management — Hobby Server Monitor";
         renderAccess(result);
       }
 
+      // Compact overview with detailed allocation
+      // information inside the expandable section.
       function renderHostOverview() {
         const report = allocationReport;
 
@@ -725,62 +1065,103 @@ const title = "Container Management — Hobby Server Monitor";
         const ram = report.memory;
         const cpu = report.cpu;
 
+        // Compact RAM summary.
         $("#allocation-ram").textContent =
+          `${formatGiB(ram.allocated_bytes)} / ` +
+          `${formatGiB(ram.total_bytes)}`;
+
+        // Compact CPU summary.
+        $("#allocation-cpu").textContent =
+          `${cpu.allocated_threads} / ` +
+          `${cpu.total_threads} threads`;
+
+        // Container counts.
+        $("#allocation-containers").textContent =
+          `${report.managed_count} managed · ` +
+          `${report.unmanaged_count} unmanaged`;
+
+        const blockers = report.blockers || [];
+
+        // Compact allocation status.
+        const statusElement = $("#allocation-status");
+
+        statusElement.textContent =
+          blockers.length
+            ? "Allocations blocked"
+            : "No blockers";
+
+        statusElement.className =
+          blockers.length
+            ? "allocation-state blocked"
+            : "allocation-state healthy";
+
+        // Full RAM details.
+        $("#allocation-ram-details").textContent =
           `Total: ${formatGiB(ram.total_bytes)} | ` +
           `Reserved: ${formatGiB(ram.reserve_bytes)} | ` +
           `Allocated: ${formatGiB(ram.allocated_bytes)} | ` +
           `Allocatable: ${formatGiB(ram.allocatable_bytes)}`;
 
-        $("#allocation-cpu").textContent =
+        // Full CPU details.
+        $("#allocation-cpu-details").textContent =
           `Total: ${cpu.total_threads} threads | ` +
           `Reserved: ${cpu.reserve_threads} | ` +
           `Allocated: ${cpu.allocated_threads} | ` +
           `Allocatable: ${cpu.allocatable_threads}`;
 
-        $("#allocation-containers").textContent =
-          `Managed: ${report.managed_count} | ` +
-          `Unmanaged: ${report.unmanaged_count}`;
-
-        const blockers = report.blockers || [];
-
-        $("#allocation-status").textContent =
-          blockers.length
-            ? "New allocations blocked"
-            : "No host-accounting blockers detected";
-
         const storageElement = $("#allocation-storage");
         storageElement.replaceChildren();
 
         for (const pool of report.storage_pools || []) {
-          const hostPool = hostInformation.storage_pools?.find(
-            (item) => item.name === pool.name,
-          );
+          const hostPool =
+            hostInformation.storage_pools?.find(
+              (item) => item.name === pool.name,
+            );
 
           const card = document.createElement("div");
           card.className = "allocation-card";
 
-          const heading = document.createElement("h4");
+          const heading =
+            document.createElement("h4");
+
           heading.textContent =
             `${pool.name} (${pool.driver})`;
 
-          const details = document.createElement("p");
+          const details =
+            document.createElement("p");
 
           details.textContent =
-            `Total: ${hostPool ? formatGiB(hostPool.total_bytes) : "Unknown"} | ` +
-            `Used: ${hostPool ? formatGiB(hostPool.used_bytes) : "Unknown"} | ` +
+            `Total: ${
+              hostPool
+                ? formatGiB(hostPool.total_bytes)
+                : "Unknown"
+            } | ` +
+            `Used: ${
+              hostPool
+                ? formatGiB(hostPool.used_bytes)
+                : "Unknown"
+            } | ` +
             `Free: ${formatGiB(pool.free_bytes)} | ` +
             `Reserved: ${formatGiB(pool.reserve_bytes)} | ` +
             `Allocated: ${formatGiB(pool.allocated_bytes)} | ` +
             `Allocatable: ${formatGiB(pool.allocatable_bytes)}`;
 
-          const verification = document.createElement("p");
+          const verification =
+            document.createElement("p");
+
           verification.className = "muted";
 
-          verification.textContent = pool.disk_quota_verified
-            ? "Disk quota enforcement verified"
-            : "Disk quota enforcement not verified — new disk allocations disabled";
+          verification.textContent =
+            pool.disk_quota_verified
+              ? "Disk quota enforcement verified"
+              : "Disk quota enforcement not verified — new disk allocations disabled";
 
-          card.append(heading, details, verification);
+          card.append(
+            heading,
+            details,
+            verification,
+          );
+
           storageElement.append(card);
         }
 
@@ -794,11 +1175,16 @@ const title = "Container Management — Hobby Server Monitor";
 
         if (!blockers.length) {
           const item = document.createElement("li");
-          item.textContent = "No reconciliation blockers.";
+
+          item.textContent =
+            "No reconciliation blockers.";
+
           blockersList.append(item);
         } else {
           for (const blocker of blockers) {
-            const item = document.createElement("li");
+            const item =
+              document.createElement("li");
+
             item.textContent = blocker;
             blockersList.append(item);
           }
@@ -825,7 +1211,9 @@ const title = "Container Management — Hobby Server Monitor";
         allocationReport = allocations;
         hostInformation = host;
 
-        const allContainers = Array.isArray(containerResponse)
+        const allContainers = Array.isArray(
+          containerResponse,
+        )
           ? containerResponse
           : containerResponse?.containers || [];
 
@@ -844,15 +1232,23 @@ const title = "Container Management — Hobby Server Monitor";
           containerSelect,
           managedContainers.map((container) => ({
             value: container.id,
-            label: container.lxd_name || container.name || container.id,
+            label:
+              container.lxd_name ||
+              container.name ||
+              container.id,
           })),
           "Select managed container",
         );
 
-        if (managedContainers.some((item) => item.id === previousId)) {
+        if (
+          managedContainers.some(
+            (item) => item.id === previousId,
+          )
+        ) {
           containerSelect.value = previousId;
         } else if (managedContainers.length) {
-          containerSelect.value = managedContainers[0].id;
+          containerSelect.value =
+            managedContainers[0].id;
         }
 
         $("#container-summary").textContent =
@@ -864,6 +1260,7 @@ const title = "Container Management — Hobby Server Monitor";
         ]);
 
         renderHostOverview();
+        updateResourceBudget();
         syncButtons();
       }
 
@@ -880,7 +1277,9 @@ const title = "Container Management — Hobby Server Monitor";
           await loadAll();
           showNotice(successText, "success");
         } catch (error) {
-          showNotice(error?.message || "Operation failed.");
+          showNotice(
+            error?.message || "Operation failed.",
+          );
         } finally {
           setBusy(false);
         }
@@ -893,7 +1292,8 @@ const title = "Container Management — Hobby Server Monitor";
           return;
         }
 
-        const allowedStates = lifecyclePermissions[action] || [];
+        const allowedStates =
+          lifecyclePermissions[action] || [];
 
         if (!allowedStates.includes(container.status)) {
           showNotice(
@@ -902,12 +1302,13 @@ const title = "Container Management — Hobby Server Monitor";
           return;
         }
 
-        const name = container.name || container.lxd_name;
+        const name =
+          container.name || container.lxd_name;
 
         if (["stop", "restart"].includes(action)) {
           const confirmed = window.confirm(
             `${action.toUpperCase()} ${name}?\n\n` +
-            "This may interrupt running applications or active terminal commands.",
+              "This may interrupt running applications or active terminal commands.",
           );
 
           if (!confirmed) {
@@ -919,11 +1320,12 @@ const title = "Container Management — Hobby Server Monitor";
         setBusy(true);
 
         try {
-          const result = await performContainerAction(
-            container.id,
-            action,
-            csrfToken,
-          );
+          const result =
+            await performContainerAction(
+              container.id,
+              action,
+              csrfToken,
+            );
 
           try {
             await loadAll();
@@ -960,13 +1362,14 @@ const title = "Container Management — Hobby Server Monitor";
           return;
         }
 
-        const name = container.name || container.lxd_name;
+        const name =
+          container.name || container.lxd_name;
 
         const typedName = window.prompt(
           `PERMANENTLY DELETE ${name}?\n\n` +
-          "This will destroy the container and its filesystem.\n" +
-          "This operation cannot be undone.\n\n" +
-          `Type "${name}" to continue:`,
+            "This will destroy the container and its filesystem.\n" +
+            "This operation cannot be undone.\n\n" +
+            `Type "${name}" to continue:`,
         );
 
         if (typedName === null) {
@@ -982,7 +1385,7 @@ const title = "Container Management — Hobby Server Monitor";
 
         const confirmed = window.confirm(
           `Final confirmation:\n\n` +
-          `Permanently delete ${name} and all its data?`,
+            `Permanently delete ${name} and all its data?`,
         );
 
         if (!confirmed) {
@@ -1000,13 +1403,16 @@ const title = "Container Management — Hobby Server Monitor";
 
           try {
             if (
-              sessionStorage.getItem("hsm:last-container-id") ===
-              container.id
+              sessionStorage.getItem(
+                "hsm:last-container-id",
+              ) === container.id
             ) {
-              sessionStorage.removeItem("hsm:last-container-id");
+              sessionStorage.removeItem(
+                "hsm:last-container-id",
+              );
             }
           } catch {
-            // The application continues without session storage.
+            // Continue without session storage.
           }
 
           try {
@@ -1037,27 +1443,43 @@ const title = "Container Management — Hobby Server Monitor";
         }
       }
 
-      document.querySelector(
-        "#delete-container-button",
-      ).addEventListener("click", permanentlyDeleteContainer);
+      // EVENT HANDLERS
+      $("#delete-container-button").addEventListener(
+        "click",
+        permanentlyDeleteContainer,
+      );
 
-      containerSelect.addEventListener("change", () => {
-        clearNotice();
-        updateLifecycleControls();
+      containerSelect.addEventListener(
+        "change",
+        () => {
+          clearNotice();
+          updateLifecycleControls();
 
-        loadAccess().catch((error) => {
-          showNotice(error?.message || "Unable to load container access.");
-        });
+          loadAccess().catch((error) => {
+            showNotice(
+              error?.message ||
+                "Unable to load container access.",
+            );
+          });
 
-        loadResourceLimits().catch((error) => {
-          showNotice(
-            error?.message || "Unable to load resource limits.",
-          );
-        });
-      });
+          loadResourceLimits().catch((error) => {
+            showNotice(
+              error?.message ||
+                "Unable to load resource limits.",
+            );
+          });
+        },
+      );
 
-      assignmentSelect.addEventListener("change", syncButtons);
-      ownerSelect.addEventListener("change", syncButtons);
+      assignmentSelect.addEventListener(
+        "change",
+        syncButtons,
+      );
+
+      ownerSelect.addEventListener(
+        "change",
+        syncButtons,
+      );
 
       assignButton.addEventListener("click", () => {
         const containerId = containerSelect.value;
@@ -1068,7 +1490,12 @@ const title = "Container Management — Hobby Server Monitor";
         }
 
         runMutation(
-          () => assignContainerAccess(containerId, userId, csrfToken),
+          () =>
+            assignContainerAccess(
+              containerId,
+              userId,
+              csrfToken,
+            ),
           "Container access assigned.",
         );
       });
@@ -1089,7 +1516,9 @@ const title = "Container Management — Hobby Server Monitor";
         if (
           !window.confirm(
             `Transfer ownership to ${
-              nextOwner ? userLabel(nextOwner) : newOwnerId
+              nextOwner
+                ? userLabel(nextOwner)
+                : newOwnerId
             }?\n\nThe new owner's quota will be charged.`,
           )
         ) {
@@ -1108,56 +1537,67 @@ const title = "Container Management — Hobby Server Monitor";
         );
       });
 
-      refreshButton.addEventListener("click", async () => {
-        clearNotice();
-        setBusy(true);
+      refreshButton.addEventListener(
+        "click",
+        async () => {
+          clearNotice();
+          setBusy(true);
 
-        try {
-          await loadAll();
-          showNotice("Container data refreshed.", "success");
-        } catch (error) {
-          showNotice(error?.message || "Unable to refresh.");
-        } finally {
-          setBusy(false);
-        }
-      });
+          try {
+            await loadAll();
+
+            showNotice(
+              "Container data refreshed.",
+              "success",
+            );
+          } catch (error) {
+            showNotice(
+              error?.message ||
+                "Unable to refresh.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        },
+      );
 
       $("#refresh-allocations-button").addEventListener(
-      "click",
-      async () => {
-        if (busy) {
-          return;
-        }
+        "click",
+        async () => {
+          if (busy) {
+            return;
+          }
 
-        clearNotice();
-        setBusy(true);
+          clearNotice();
+          setBusy(true);
 
-        try {
-          const [allocations, host] = await Promise.all([
-            getAdminAllocations(),
-            getAdminHost(),
-          ]);
+          try {
+            const [allocations, host] =
+              await Promise.all([
+                getAdminAllocations(),
+                getAdminHost(),
+              ]);
 
-          allocationReport = allocations;
-          hostInformation = host;
+            allocationReport = allocations;
+            hostInformation = host;
 
-          renderHostOverview();
-          updateResourceBudget();
+            renderHostOverview();
+            updateResourceBudget();
 
-          showNotice(
-            "Host allocation overview refreshed.",
-            "success",
-          );
-        } catch (error) {
-          showNotice(
-            error?.message ||
-            "Unable to refresh host allocation overview.",
-          );
-        } finally {
-          setBusy(false);
-        }
-      },
-    );
+            showNotice(
+              "Host allocation overview refreshed.",
+              "success",
+            );
+          } catch (error) {
+            showNotice(
+              error?.message ||
+                "Unable to refresh host allocation overview.",
+            );
+          } finally {
+            setBusy(false);
+          }
+        },
+      );
 
       document.querySelectorAll(
         "[data-lifecycle-action]",
@@ -1169,115 +1609,144 @@ const title = "Container Management — Hobby Server Monitor";
         });
       });
 
-      resourceForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
+      resourceForm.addEventListener(
+        "submit",
+        async (event) => {
+          event.preventDefault();
 
-        if (
-          busy ||
-          resourceLoading ||
-          !resourceLimits ||
-          !csrfToken
-        ) {
-          return;
-        }
+          if (
+            busy ||
+            resourceLoading ||
+            !resourceLimits ||
+            !csrfToken
+          ) {
+            return;
+          }
 
-        if (!resourceForm.reportValidity()) {
-          return;
-        }
+          if (!resourceForm.reportValidity()) {
+            return;
+          }
 
-        const containerId = resourceLimits.id;
+          const containerId = resourceLimits.id;
 
-        if (containerSelect.value !== containerId) {
-          showNotice("Container selection changed. Refresh first.");
-          return;
-        }
+          if (containerSelect.value !== containerId) {
+            showNotice(
+              "Container selection changed. Refresh first.",
+            );
+            return;
+          }
 
-        const payload = {
-          ram_limit_bytes: Math.round(
-            Number($("#resource-ram").value) * GiB,
-          ),
-          cpu_limit_cores: Number($("#resource-cpu").value),
-          cpu_allowance_percent: Number(
-            $("#resource-allowance").value,
-          ),
-          disk_limit_bytes: Math.round(
-            Number($("#resource-disk").value) * GiB,
-          ),
-        };
+          const payload = {
+            ram_limit_bytes: Math.round(
+              Number($("#resource-ram").value) * GiB,
+            ),
 
-        const saved = resourceLimits;
+            cpu_limit_cores: Number(
+              $("#resource-cpu").value,
+            ),
 
-        if (
-          !Number.isSafeInteger(payload.ram_limit_bytes) ||
-          !Number.isSafeInteger(payload.disk_limit_bytes) ||
-          !Number.isSafeInteger(payload.cpu_limit_cores) ||
-          !Number.isSafeInteger(payload.cpu_allowance_percent) ||
-          payload.ram_limit_bytes <= 0 ||
-          payload.disk_limit_bytes <= 0 ||
-          payload.cpu_limit_cores <= 0 ||
-          payload.cpu_allowance_percent < 1 ||
-          payload.cpu_allowance_percent > 100
-        ) {
-          showNotice("Invalid resource values.");
-          return;
-        }
+            cpu_allowance_percent: Number(
+              $("#resource-allowance").value,
+            ),
 
-        if (payload.disk_limit_bytes < saved.disk_limit_bytes) {
-          showNotice("Reducing a root-disk limit is not supported.");
-          return;
-        }
+            disk_limit_bytes: Math.round(
+              Number($("#resource-disk").value) * GiB,
+            ),
+          };
 
-        const increased =
-          payload.ram_limit_bytes > saved.ram_limit_bytes ||
-          payload.cpu_limit_cores > saved.cpu_limit_cores ||
-          payload.disk_limit_bytes > saved.disk_limit_bytes;
+          const saved = resourceLimits;
 
-        if (increased && allocationReport?.blockers?.length) {
-          showNotice(
-            "Host allocation blockers must be resolved before increasing limits.",
-          );
-          return;
-        }
+          if (
+            !Number.isSafeInteger(
+              payload.ram_limit_bytes,
+            ) ||
+            !Number.isSafeInteger(
+              payload.disk_limit_bytes,
+            ) ||
+            !Number.isSafeInteger(
+              payload.cpu_limit_cores,
+            ) ||
+            !Number.isSafeInteger(
+              payload.cpu_allowance_percent,
+            ) ||
+            payload.ram_limit_bytes <= 0 ||
+            payload.disk_limit_bytes <= 0 ||
+            payload.cpu_limit_cores <= 0 ||
+            payload.cpu_allowance_percent < 1 ||
+            payload.cpu_allowance_percent > 100
+          ) {
+            showNotice("Invalid resource values.");
+            return;
+          }
 
-        clearNotice();
-        setBusy(true);
+          if (
+            payload.disk_limit_bytes <
+            saved.disk_limit_bytes
+          ) {
+            showNotice(
+              "Reducing a root-disk limit is not supported.",
+            );
+            return;
+          }
 
-        try {
-          await updateContainerResourceLimits(
-            containerId,
-            payload,
-            csrfToken,
-          );
+          const increased =
+            payload.ram_limit_bytes >
+              saved.ram_limit_bytes ||
+            payload.cpu_limit_cores >
+              saved.cpu_limit_cores ||
+            payload.disk_limit_bytes >
+              saved.disk_limit_bytes;
+
+          if (
+            increased &&
+            allocationReport?.blockers?.length
+          ) {
+            showNotice(
+              "Host allocation blockers must be resolved before increasing limits.",
+            );
+            return;
+          }
+
+          clearNotice();
+          setBusy(true);
 
           try {
-            await loadAll();
-
-            showNotice(
-              "Resource limits updated successfully.",
-              "success",
+            await updateContainerResourceLimits(
+              containerId,
+              payload,
+              csrfToken,
             );
+
+            try {
+              await loadAll();
+
+              showNotice(
+                "Resource limits updated successfully.",
+                "success",
+              );
+            } catch (error) {
+              showNotice(
+                "Update completed, but refresh failed. Reload before editing again.",
+                "success",
+              );
+            }
           } catch (error) {
             showNotice(
-              "Update completed, but refresh failed. Reload before editing again.",
-              "success",
+              error?.message ||
+                "Resource update failed.",
             );
-          }
-        } catch (error) {
-          showNotice(
-            error?.message || "Resource update failed.",
-          );
 
-          // Reload authoritative values after a failed update.
-          try {
-            await loadAll();
-          } catch {
-            resourceLimits = null;
-            saveResourceButton.disabled = true;
+            try {
+              await loadAll();
+            } catch {
+              resourceLimits = null;
+              saveResourceButton.disabled = true;
+            }
+          } finally {
+            setBusy(false);
           }
-        } finally {
-          setBusy(false);
-        }
-      });
+        },
+      );
 
       async function initialize() {
         try {
@@ -1285,23 +1754,35 @@ const title = "Container Management — Hobby Server Monitor";
           const user = response.user || response;
 
           if (user.role !== "admin") {
-            showNotice("403 — Administrator access is required.");
+            showNotice(
+              "403 — Administrator access is required.",
+            );
             return;
           }
 
-          csrfToken = response.csrf_token || user.csrf_token || "";
+          csrfToken =
+            response.csrf_token ||
+            user.csrf_token ||
+            "";
 
           if (!csrfToken) {
-            showNotice("CSRF token is unavailable.");
+            showNotice(
+              "CSRF token is unavailable.",
+            );
             return;
           }
 
           $("#account").replaceChildren();
 
-          const name = document.createElement("strong");
-          name.textContent = user.name || user.email || "Admin";
+          const name =
+            document.createElement("strong");
 
-          const role = document.createElement("span");
+          name.textContent =
+            user.name || user.email || "Admin";
+
+          const role =
+            document.createElement("span");
+
           role.textContent = "Admin";
 
           $("#account").append(name, role);
@@ -1309,13 +1790,17 @@ const title = "Container Management — Hobby Server Monitor";
           await loadAll();
           clearNotice();
         } catch (error) {
-          showNotice(error?.message || "Unable to load management page.");
+          showNotice(
+            error?.message ||
+              "Unable to load management page.",
+          );
         }
       }
 
       initialize();
     </script>
 
+    <!-- STYLES -->
     <style is:global>
       :root {
         font-family: Inter, system-ui, sans-serif;
@@ -1323,7 +1808,9 @@ const title = "Container Management — Hobby Server Monitor";
         background: #080d16;
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
       body {
         margin: 0;
@@ -1331,7 +1818,13 @@ const title = "Container Management — Hobby Server Monitor";
         background: #080d16;
       }
 
-      button, select { font: inherit; }
+      button,
+      select,
+      input {
+        font: inherit;
+      }
+
+      /* MAIN LAYOUT */
 
       .layout {
         display: grid;
@@ -1348,9 +1841,14 @@ const title = "Container Management — Hobby Server Monitor";
         background: #0d1420;
       }
 
-      .sidebar h1 { margin: 0; font-size: 20px; }
+      .sidebar h1 {
+        margin: 0;
+        font-size: 20px;
+      }
 
-      nav { flex: 1; }
+      nav {
+        flex: 1;
+      }
 
       .nav-item {
         display: block;
@@ -1358,6 +1856,12 @@ const title = "Container Management — Hobby Server Monitor";
         border-radius: 8px;
         color: #9ca3af;
         text-decoration: none;
+        transition: background 0.2s;
+      }
+
+      .nav-item:hover {
+        background: #172033;
+        color: #e5e7eb;
       }
 
       .nav-item.active {
@@ -1373,31 +1877,83 @@ const title = "Container Management — Hobby Server Monitor";
         border-top: 1px solid #1f2937;
       }
 
-      .account span, .muted {
+      .account span,
+      .muted {
         color: #94a3b8;
         font-size: 13px;
         line-height: 1.6;
       }
 
-      main { padding: 30px; min-width: 0; }
+      main {
+        width: 100%;
+        max-width: 1600px;
+        padding: 30px;
+        min-width: 0;
+        margin: 0 auto;
+      }
+
+      /* HEADER */
 
       .page-header {
         display: flex;
-        align-items: start;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: 20px;
+        gap: 24px;
       }
 
-      .page-header h2 { margin: 5px 0; }
-      .page-header p { margin: 0; color: #94a3b8; }
+      .page-header h2 {
+        margin: 5px 0 8px;
+        font-size: 26px;
+        letter-spacing: -0.5px;
+      }
+
+      .page-header p {
+        margin: 0;
+        color: #94a3b8;
+        font-size: 14px;
+        line-height: 1.6;
+      }
 
       .eyebrow {
         color: #7dd3fc;
         font-size: 11px;
         font-weight: 700;
-        letter-spacing: .12em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
       }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .header-actions button,
+      .header-actions .create-container-link {
+        margin: 0;
+      }
+
+      .create-container-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 14px;
+        border: 1px solid #2563eb;
+        border-radius: 8px;
+        background: #1d4ed8;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .create-container-link:hover {
+        background: #2563eb;
+      }
+
+      /* COMMON COMPONENTS */
 
       .panel {
         margin-top: 22px;
@@ -1408,12 +1964,32 @@ const title = "Container Management — Hobby Server Monitor";
         min-width: 0;
       }
 
-      .panel h3 { margin: 0 0 12px; }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
 
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
+      .section-heading {
+        margin-top: 30px;
+        margin-bottom: 14px;
+      }
+
+      .section-heading h3 {
+        margin: 0 0 5px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .section-heading p {
+        margin: 0;
+      }
+
+      .section-eyebrow {
+        color: #7dd3fc;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: 7px;
       }
 
       label {
@@ -1425,28 +2001,57 @@ const title = "Container Management — Hobby Server Monitor";
 
       select {
         width: 100%;
-        padding: 10px;
+        min-width: 0;
+        padding: 10px 12px;
         border: 1px solid #334155;
         border-radius: 8px;
         color: #e5e7eb;
         background: #080d16;
       }
 
+      select:focus,
+      input:focus {
+        outline: 2px solid #2563eb;
+        outline-offset: 1px;
+      }
+
       button {
         margin-top: 14px;
         border: 1px solid #334155;
         border-radius: 8px;
-        padding: 9px 13px;
+        padding: 10px 14px;
         color: #e5e7eb;
         background: #22304a;
         cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
       }
 
-      .page-header button { margin-top: 0; }
+      button:hover:not(:disabled) {
+        background: #30415e;
+      }
 
       button:disabled {
-        opacity: .45;
+        opacity: 0.45;
         cursor: not-allowed;
+      }
+
+      .primary-button {
+        background: #1d4ed8;
+        border-color: #2563eb;
+        color: #fff;
+      }
+
+      .primary-button:hover:not(:disabled) {
+        background: #2563eb;
+      }
+
+      .secondary-button {
+        margin: 0;
+        background: transparent;
       }
 
       .danger {
@@ -1455,15 +2060,276 @@ const title = "Container Management — Hobby Server Monitor";
         background: #2b1217;
       }
 
-      .checkbox-row {
-        display: flex;
-        align-items: center;
-        gap: 9px;
+      .danger:hover:not(:disabled) {
+        background: #451a20;
       }
 
-      .checkbox-row input { width: auto; }
+      .message {
+        margin-top: 18px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        background: #172033;
+        font-size: 13px;
+      }
+
+      .message.error {
+        color: #fecaca;
+        border-color: #7f1d1d;
+        background: #2b1217;
+      }
+
+      .message.success {
+        color: #bbf7d0;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* COMPACT HOST OVERVIEW */
+
+      .host-overview {
+        margin-top: 24px;
+        padding: 18px;
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        background: #101826;
+      }
+
+      .host-overview-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .host-overview-heading {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .host-overview-heading h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .host-stats {
+        display: grid;
+        grid-template-columns: repeat(
+          4,
+          minmax(0, 1fr)
+        );
+        gap: 12px;
+      }
+
+      .host-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+        padding: 14px;
+        border: 1px solid #293548;
+        border-radius: 9px;
+        background: #0b111c;
+      }
+
+      .stat-label {
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .host-stat strong {
+        color: #f1f5f9;
+        font-size: 14px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      .stat-description {
+        color: #64748b;
+        font-size: 11px;
+      }
+
+      .allocation-state.healthy {
+        color: #86efac;
+      }
+
+      .allocation-state.blocked {
+        color: #fca5a5;
+      }
+
+      /* EXPANDABLE ALLOCATION DETAILS */
+
+      .allocation-details {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid #1f2937;
+      }
+
+      .allocation-details summary {
+        color: #7dd3fc;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .allocation-details summary:hover {
+        color: #bae6fd;
+      }
+
+      .allocation-details-content {
+        padding-top: 14px;
+      }
+
+      .allocation-details-content > h4 {
+        margin: 22px 0 12px;
+        font-size: 14px;
+      }
+
+      .allocation-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(
+          2,
+          minmax(0, 1fr)
+        );
+        gap: 12px;
+      }
+
+      .allocation-card {
+        padding: 16px;
+        margin-top: 10px;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        background: #0b111c;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .allocation-detail-grid .allocation-card {
+        margin-top: 0;
+      }
+
+      .allocation-card h4 {
+        margin: 0 0 10px;
+        font-size: 13px;
+      }
+
+      .allocation-card p {
+        margin: 8px 0;
+        line-height: 1.7;
+        font-size: 13px;
+      }
+
+      #allocation-blockers {
+        padding-left: 20px;
+        overflow-wrap: anywhere;
+        color: #cbd5e1;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      /* CONTAINER SELECTION */
+
+      .container-selector-panel {
+        border-color: #334155;
+        background: #121d2d;
+      }
+
+      .container-selector-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 30px;
+      }
+
+      .container-selector-heading h3 {
+        font-size: 18px;
+        margin-bottom: 5px;
+      }
+
+      .container-selector-heading p {
+        margin: 0;
+      }
+
+      .container-select-wrapper {
+        width: min(420px, 100%);
+      }
+
+      .container-select-wrapper label {
+        margin-top: 0;
+      }
+
+      .selected-container-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid #293548;
+        font-size: 13px;
+      }
+
+      .selected-state {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .container-status {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #cbd5e1;
+        background: #263244;
+      }
+
+      .container-status.status-running {
+        color: #86efac;
+        background: #123026;
+      }
+
+      .container-status.status-stopped {
+        color: #fca5a5;
+        background: #381c24;
+      }
+
+      .container-status.status-frozen {
+        color: #fcd34d;
+        background: #362b15;
+      }
+
+      /* MANAGEMENT GRID */
+
+      .management-grid {
+        display: grid;
+        grid-template-columns: repeat(
+          2,
+          minmax(0, 1fr)
+        );
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      .management-grid > .panel {
+        margin-top: 0;
+        height: 100%;
+      }
+
+      /* ACCESS LIST */
 
       .access-list {
+        margin: 14px 0 0;
         padding: 0;
         list-style: none;
       }
@@ -1476,6 +2342,12 @@ const title = "Container Management — Hobby Server Monitor";
         padding: 12px 0;
         border-bottom: 1px solid #1f2937;
         font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .access-list li:last-child {
+        border-bottom: none;
       }
 
       .access-list button {
@@ -1483,88 +2355,72 @@ const title = "Container Management — Hobby Server Monitor";
         margin: 0;
       }
 
-      .message {
-        margin-top: 18px;
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        background: #172033;
+      /* RESOURCE LIMITS */
+
+      .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(
+          2,
+          minmax(0, 1fr)
+        );
+        gap: 12px 16px;
+        margin-top: 12px;
       }
 
-      .message.error {
-        color: #fecaca;
-        border-color: #7f1d1d;
-        background: #2b1217;
+      .resource-grid label {
+        margin-top: 8px;
       }
-
-      .message.success { color: #bbf7d0; }
-      .hidden { display: none; }
 
       #resource-form input {
         width: 100%;
-        padding: 10px;
+        min-width: 0;
+        padding: 10px 12px;
         border: 1px solid #334155;
         border-radius: 8px;
         color: #e5e7eb;
         background: #080d16;
-        font: inherit;
       }
 
-      .allocation-card {
-        margin-top: 12px;
-        padding: 16px;
-        border: 1px solid #334155;
-        border-radius: 10px;
+      #resource-status {
+        padding: 10px 12px;
         background: #0b111c;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      .allocation-card h4 {
-        margin: 0 0 10px;
-      }
-
-      .allocation-card p {
-        line-height: 1.7;
-      }
-
-      #allocation-blockers {
-        overflow-wrap: anywhere;
-      }
-
-      @media (max-width: 900px) {
-        .layout { grid-template-columns: 1fr; }
-        .sidebar { display: none; }
-        .grid { grid-template-columns: 1fr; }
-        main { padding: 18px; }
-      }
-
-      @media (max-width: 600px) {
-        .page-header, .access-list li {
-          align-items: stretch;
-          flex-direction: column;
-        }
-      }
-
-      .create-container-link {
-        display: inline-block;
-        padding: 10px 14px;
-        border: 1px solid #334155;
         border-radius: 8px;
-        background: #22304a;
-        color: #e5e7eb;
-        font-size: 13px;
-        font-weight: 600;
-        text-decoration: none;
+        overflow-wrap: anywhere;
       }
 
-      .create-container-link:hover {
-        background: #30415e;
+      .resource-budget-details {
+        margin-top: 18px;
+        padding: 12px;
+        border: 1px solid #293548;
+        border-radius: 8px;
+        background: #0b111c;
       }
+
+      .resource-budget-details summary {
+        color: #7dd3fc;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .budget-content {
+        margin-top: 12px;
+        padding-top: 8px;
+        border-top: 1px solid #293548;
+      }
+
+      .budget-content p {
+        overflow-wrap: anywhere;
+      }
+
+      /* LIFECYCLE */
 
       .lifecycle-summary {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(
+          2,
+          minmax(0, 1fr)
+        );
         gap: 12px;
         margin-top: 18px;
       }
@@ -1572,7 +2428,9 @@ const title = "Container Management — Hobby Server Monitor";
       .lifecycle-summary > div {
         padding: 14px;
         background: #0b111c;
+        border: 1px solid #293548;
         border-radius: 8px;
+        min-width: 0;
       }
 
       .lifecycle-summary span {
@@ -1585,48 +2443,242 @@ const title = "Container Management — Hobby Server Monitor";
         display: block;
         margin-top: 7px;
         font-size: 16px;
+        overflow-wrap: anywhere;
       }
 
       .lifecycle-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 12px;
+        margin-top: 18px;
       }
 
       .lifecycle-actions button {
-        min-width: 100px;
+        min-width: 90px;
+        margin: 0;
+        flex: 1 1 auto;
       }
 
-      .deletion-section {
-        margin-top: 30px;
-        padding: 20px;
-        border: 1px solid #7f1d1d;
-        border-radius: 10px;
+      .lifecycle-actions .start-button {
+        color: #bbf7d0;
+        border-color: #166534;
+        background: #123026;
+      }
+
+      .lifecycle-actions .start-button:hover:not(
+          :disabled
+        ) {
+        background: #185038;
+      }
+
+      /* OWNERSHIP */
+
+      .ownership-panel {
+        margin-top: 0;
+      }
+
+      .ownership-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        align-items: start;
+      }
+
+      .ownership-description p {
+        max-width: 460px;
+      }
+
+      .ownership-form label:first-child {
+        margin-top: 0;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        cursor: pointer;
+        line-height: 1.5;
+      }
+
+      .checkbox-row input {
+        width: auto;
+        flex-shrink: 0;
+        margin: 0;
+      }
+
+      /* DANGER ZONE */
+
+      .danger-panel {
+        margin-top: 26px;
+        margin-bottom: 30px;
+        border-color: #7f1d1d;
         background: #1c1119;
       }
 
-      .deletion-section h4 {
-        margin: 0 0 10px;
+      .danger-panel h3 {
         color: #fca5a5;
       }
 
-      .deletion-section p {
-        margin-bottom: 12px;
+      .danger-panel-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 30px;
       }
 
-      @media (max-width: 600px) {
+      .danger-panel-content p {
+        max-width: 680px;
+        margin-bottom: 0;
+      }
+
+      .danger-panel-content button {
+        margin: 0;
+        flex-shrink: 0;
+      }
+
+      /* RESPONSIVE DESIGN */
+
+      @media (max-width: 1200px) {
+        .host-stats {
+          grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+          );
+        }
+
+        .management-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        main {
+          padding: 20px;
+        }
+
+        .ownership-content {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+
+        .allocation-detail-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .page-header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .header-actions {
+          width: 100%;
+        }
+
+        .header-actions > * {
+          flex: 1;
+          text-align: center;
+        }
+
+        .host-overview-header {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .host-overview-heading {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .host-overview-header button {
+          align-self: flex-start;
+        }
+
+        .container-selector-heading {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .container-select-wrapper {
+          width: 100%;
+        }
+
+        .selected-container-meta {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .danger-panel-content {
+          align-items: stretch;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .danger-panel-content button {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 500px) {
+        main {
+          padding: 14px;
+        }
+
+        .panel {
+          padding: 16px;
+        }
+
+        .host-overview {
+          padding: 14px;
+        }
+
+        .host-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .resource-grid {
+          grid-template-columns: 1fr;
+        }
+
         .lifecycle-summary {
           grid-template-columns: 1fr;
         }
 
+        .access-list li {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .access-list button {
+          width: 100%;
+        }
+
         .lifecycle-actions button {
-          flex: 1;
+          flex: 1 1 45%;
+        }
+
+        .page-header h2 {
+          font-size: 23px;
         }
       }
     </style>
+
     <script>
-      import { initializeNavigation } from "../../lib/navigation.js";
+      import {
+        initializeNavigation,
+      } from "../../lib/navigation.js";
 
       initializeNavigation();
     </script>

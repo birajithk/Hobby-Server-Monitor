@@ -14,16 +14,14 @@ A task is complete only when its implementation has been verified. Checkmarks be
 
 ## Immediate next milestone — Complete the Admin dashboard (P0)
 
-- [ ] Add a read-only, Admin-authorized endpoint to get one managed container's saved RAM, CPU, CPU allowance, disk and storage-pool limits for form prefill. (The existing resources endpoint currently supports PATCH only.)
-- [ ] Implement the Admin resource-limit editing form with exact existing API fields and current values.
-- [ ] Show per-user remaining quotas and per-host remaining allocation budget while editing; preserve backend validation and prevent unsupported disk shrinkage.
-- [ ] Test real RAM/CPU/allowance/disk-increase changes on a disposable managed LXD container; verify LXD values, SQLite state, metrics, and error handling on drift or quota failure.
-- [ ] Add an Admin host-allocation overview showing total, reserved, allocated and allocatable RAM/CPU and per-verified-pool disk budgets.
-- [ ] Show managed/unmanaged counts and allocation blockers; explain when new allocations are disabled and provide a manual refresh.
-- [ ] Verify the non-root Container User terminal identity in newly created `hsm-test-02` (not only the previously provisioned `hsm-quota-01`). If missing, implement a safe provisioning flow before treating new-container terminal support as complete.
-- [ ] Verify the Admin and Container User UI on desktop and mobile and the actual API access restrictions.
-
-**Next phase gate:** After the Admin resource controls and host allocation overview are tested, announce **“deployment, security verification, performance measurements, and final documentation.”** Do not start that phase before the above P0 dashboard work and the new-container terminal check have been addressed.
+- [x] Add a read-only, Admin-authorized endpoint to get one managed container's saved RAM, CPU, CPU allowance, disk and storage-pool limits for form prefill.
+- [x] Implement the Admin resource-limit editing form with exact existing API fields and current values.
+- [x] Show per-user remaining quotas and per-host remaining allocation budget while editing; preserve backend validation and prevent unsupported disk shrinkage.
+- [x] Test real RAM/CPU/allowance/disk-increase changes on a disposable managed LXD container; verify LXD values, SQLite state, metrics, and error handling on drift or quota failure.
+- [x] Add an Admin host-allocation overview showing total, reserved, allocated and allocatable RAM/CPU and per-verified-pool disk budgets.
+- [x] Show managed/unmanaged counts and allocation blockers; explain when new allocations are disabled and provide a manual refresh.
+- [x] Verify the non-root Container User terminal identity in newly created `hsm-test-02` (not only the previously provisioned `hsm-quota-01`). If missing, implement a safe provisioning flow before treating new-container terminal support as complete.
+- [x] Verify the Admin and Container User UI on desktop and mobile and the actual API access restrictions.
 
 ## Phase 0 — Project Foundation
 
@@ -217,7 +215,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Use actual pylxd execution.
 - [x] Establish the Admin execution identity.
 - [x] Provision and verify the non-root Container User identity in the original development container.
-- [ ] Verify/provision the restricted non-root terminal identity in each newly created managed container; creation currently starts LXD without a verified automatic identity-provisioning step.
+- [x] Verify/provision the restricted non-root terminal identity in each newly created managed container; creation currently starts LXD without a verified automatic identity-provisioning step.
 - [x] Prevent unrestricted sudo for Container Users.
 - [x] Implement command-length limits.
 - [x] Implement output-size limits.
@@ -259,11 +257,11 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Implement ephemeral and autostart options.
 - [x] Display current allocatable disk for the selected verified storage pool in the top host-resource summary.
 - [x] Implement container lifecycle controls.
-- [ ] Implement Admin resource-limit updates from the Astro dashboard (Falcon PATCH endpoint already exists).
-- [ ] Expose saved current resource limits through an authenticated Admin GET endpoint for form prefill.
+- [x] Implement Admin resource-limit updates from the Astro dashboard (Falcon PATCH endpoint already exists).
+- [x] Expose saved current resource limits through an authenticated Admin GET endpoint for form prefill.
 - [ ] Verify resource-limit edits made through the dashboard against real LXD containers, database allocations and metrics.
-- [ ] Reject resource updates when LXD and application accounting have drifted.
-- [ ] Prevent disk-limit reduction in the initial resource-update policy.
+- [x] Reject resource updates when LXD and application accounting have drifted.
+- [x] Prevent disk-limit reduction in the initial resource-update policy.
 - [x] Implement deletion confirmation.
 - [x] Implement the Astro Admin user-invitation form with hardware-based quota limits.
 - [x] Implement user listing and role management.
@@ -272,13 +270,13 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Implement container assignments.
 - [x] Implement ownership transfers.
 - [x] Display user allocations against quotas.
-- [ ] Display Admin host allocation summaries for RAM, CPU and disk pools, including reservations and remaining allocatable capacity.
-- [ ] Display unmanaged/missing-container blockers and a manual refresh in the host-allocation UI.
+- [x] Display Admin host allocation summaries for RAM, CPU and disk pools, including reservations and remaining allocatable capacity.
+- [x] Display unmanaged/missing-container blockers and a manual refresh in the host-allocation UI.
 - [x] Implement the command terminal interface.
 - [x] Display command output and exit status.
 - [ ] Handle loading, empty and error states.
 - [ ] Display stale metrics and LXD-unavailable states.
-- [ ] Verify responsive layouts.
+- [x] Verify responsive layouts.
 - [x] Verify Admin-only API routes, non-Admin denial and assigned-container authorization through backend tests.
 - [ ] Complete final browser-level checks of role-specific layout and missing/empty/error states.
 
