@@ -316,10 +316,11 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Add the independent collector systemd service.
 - [x] Configure static Astro deployment through Nginx.
 - [x] Configure systemd startup ordering and database initialization dependency.
-- [ ] Fully verify automatic systemd restart policies for both Falcon and the independent collector.
+- [x] Fully verify automatic systemd restart policies for both Falcon and the independent collector.
 - [ ] Document service logging and troubleshooting.
 - [x] Verify a fresh database initialization.
-- [ ] Complete service recovery verification, including unexpected collector failure.
+- [x] Complete service recovery verification, including unexpected collector failure.
+- [x] Verify automatic TinyFlux collector recovery after unexpected SIGKILL; systemd restarted the collector, recent TinyFlux measurements were confirmed, and Falcon remained operational (2026-10-08).
 - [ ] Verify recovery after a host reboot.
 - [x] Verify that the application works without development servers.
 - [ ] Verify authenticated browser access through production HTTPS.

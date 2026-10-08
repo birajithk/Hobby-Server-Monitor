@@ -315,6 +315,74 @@ after an unexpected master-process termination.
 The test was performed on the local deployment
 and reported as passed on 2026-10-08.
 
+### Collector automatic recovery test
+
+Status: PASSED
+
+Verification date: 2026-10-08
+
+The independent TinyFlux collector was tested for
+automatic recovery after unexpected process failure.
+
+The collector runs under the systemd service:
+
+hobby-server-monitor-collector.service
+
+Its restart policy is:
+
+- Restart=on-failure
+- RestartSec=5
+
+#### Test procedure
+
+1. Confirmed that the collector was running.
+2. Recorded its main process ID and restart count.
+3. Recorded the test start time.
+4. Terminated the collector's main process using SIGKILL.
+5. Allowed systemd to restart the failed service.
+6. Verified that the service returned to active status.
+7. Verified that the main PID changed and restart count increased.
+8. Checked systemd journal logs for recovery events.
+9. Queried the production TinyFlux database for measurements
+   created after the crash test began.
+10. Verified that recent measurements were present.
+11. Confirmed the Falcon API remained available.
+
+#### Failure simulation
+
+sudo systemctl kill \
+  --kill-who=main \
+  --signal=SIGKILL \
+  hobby-server-monitor-collector
+
+#### Results
+
+PASS — systemd restarted the collector automatically.
+
+PASS — Collector returned to active status.
+
+PASS — Collector started with a new main process ID.
+
+PASS — systemd restart counter increased.
+
+PASS — Collector resumed writing measurements to TinyFlux.
+
+PASS — Recent TinyFlux measurement timestamps were verified.
+
+PASS — Falcon API remained operational.
+
+#### Engineering conclusion
+
+The independent metrics collector can recover from an
+unexpected process termination without requiring manual
+intervention or a restart of the Falcon API.
+
+This satisfies process-level collector restart verification.
+
+The test does not establish host-reboot recovery or recovery
+from every possible LXD failure. Those remain separate
+verification requirements.
+
 ### Issue encountered during deployment
 
 The first attempt to start the Falcon systemd
@@ -379,8 +447,6 @@ curl --fail -I http://127.0.0.1:8080/
 
 The following checks remain open until tested:
 
-- Automatic collector process recovery after
-  an unexpected process failure.
 - Full verification of collector independence
   while Falcon is stopped.
 - Service recovery following a host reboot.
