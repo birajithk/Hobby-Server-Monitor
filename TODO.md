@@ -345,27 +345,27 @@ A task is complete only when its implementation has been verified. Checkmarks be
 
 ## Phase 12 — Documentation (P1)
 
-- [ ] Replace the template internship-assignment README and backend/dashboard placeholders with real project setup and usage instructions.
-- [ ] Document LXD installation and initialization.
-- [ ] Document Google OAuth configuration.
-- [ ] Document backend and frontend installation.
-- [ ] Document database initialization.
-- [ ] Add the architecture diagram.
-- [ ] Document the SQLite schema.
-- [ ] Document the TinyFlux schema.
-- [ ] Document all API endpoints and permissions.
-- [ ] Document every environment variable.
-- [ ] Document the LXD privilege decision.
-- [ ] Document the security threat model.
-- [ ] Document deployment and recovery.
+- [ ] Replace the template internship-assignment README and backend/dashboard placeholders with real project setup and usage instructions; the root README is complete, but remaining placeholders must still be reviewed.
+- [x] Document LXD installation and initialization.
+- [x] Document Google OAuth configuration.
+- [x] Document backend and frontend installation.
+- [x] Document database initialization.
+- [x] Add the architecture diagram.
+- [x] Document the SQLite schema and relationships.
+- [ ] Complete the TinyFlux measurement, tag and field reference; raw measurements are documented, but aggregate layout requires final review.
+- [ ] Complete the API reference with full request and response examples; all registered endpoints, methods and access requirements are listed.
+- [x] Document every implemented environment variable.
+- [x] Document the LXD privilege decision and residual risk.
+- [ ] Complete the detailed security threat model.
+- [x] Document deployment and verified recovery behavior.
 - [ ] Complete REPORT.md.
 - [ ] Record approximate time spent per area.
 - [ ] Record actual problems and solutions.
 - [ ] Record lessons learned.
 - [ ] Document implemented bonuses.
 - [x] Document actual resource measurements.
-- [ ] Document known limitations.
-- [ ] Disclose AI tool usage.
+- [ ] Complete the known-limitations section of REPORT.md.
+- [ ] Disclose AI tool usage in REPORT.md.
 - [ ] Verify README instructions on a clean environment.
 
 ## Phase 13 — Bonuses (P2)
