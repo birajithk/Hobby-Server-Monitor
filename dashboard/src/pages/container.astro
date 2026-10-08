@@ -303,6 +303,14 @@ const title =
               </button>
             </div>
 
+            <button
+              type="button"
+              id="export-csv-button"
+              class="export-csv-button"
+            >
+              Export CSV
+            </button>
+
           </div>
 
 
@@ -387,6 +395,7 @@ const title =
         getCurrentUser,
         getLatestMetrics,
         getMetricHistory,
+        downloadMetricCsv,
       } from "../lib/api.js";
 
 
@@ -512,6 +521,28 @@ const title =
 
       let selectedRange =
         "1h";
+
+      const exportCsvButton = document.querySelector("#export-csv-button");
+      exportCsvButton.addEventListener("click", async () => {
+        if (!containerId || exportCsvButton.disabled) return;
+        exportCsvButton.disabled = true;
+        clearError();
+        try {
+          const blob = await downloadMetricCsv(containerId, selectedRange);
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `hsm-metrics-${selectedRange}.csv`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          showError(error?.message || "CSV export failed.");
+        } finally {
+          exportCsvButton.disabled = false;
+        }
+      });
 
       let pollingTimer =
         null;
@@ -1983,6 +2014,23 @@ const title =
       pointer;
   }
 
+
+  .export-csv-button {
+    border: 1px solid #2563eb;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #1d4ed8;
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .export-csv-button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
 
   .range-selector button.active {
     color:

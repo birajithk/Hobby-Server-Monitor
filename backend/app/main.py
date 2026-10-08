@@ -81,6 +81,7 @@ from app.api.metrics import (
     LatestMetricsResource,
     MetricsHistoryResource,
 )
+from app.api.metrics_export import MetricsCSVResource
 
 from app.services.metrics_query_service import (
     MetricsQueryService,
@@ -410,6 +411,14 @@ def create_app(
         "/api/containers/"
         "{container_id}/metrics/history",
         MetricsHistoryResource(
+            metric_queries
+        ),
+    )
+
+    application.add_route(
+        "/api/containers/"
+        "{container_id}/metrics/export",
+        MetricsCSVResource(
             metric_queries
         ),
     )

@@ -133,6 +133,28 @@ export function getMetricHistory(
   );
 }
 
+// CSV is a binary download, so the JSON-only apiRequest helper is not used.
+export async function downloadMetricCsv(containerId, range = "1h") {
+  const url = `/api/containers/${encodeURIComponent(containerId)}` +
+    `/metrics/export?range=${encodeURIComponent(range)}`;
+  const response = await fetch(url, {
+    method: "GET",
+    credentials: "same-origin",
+    headers: { Accept: "text/csv" },
+  });
+  if (!response.ok) {
+    let message = `CSV export failed (HTTP ${response.status}).`;
+    try {
+      const problem = await response.json();
+      message = problem.description || problem.title || message;
+    } catch {
+      // The server may return an empty or non-JSON error.
+    }
+    throw new ApiError(message, response.status);
+  }
+  return response.blob();
+}
+
 
 export function executeContainerCommand(
   containerId,

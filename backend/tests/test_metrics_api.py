@@ -684,5 +684,81 @@ class MetricsAPITests(unittest.TestCase):
         )
 
 
+    def test_csv_export_requires_authentication(self):
+        response = self.client.simulate_get(
+            "/api/containers/container-1/metrics/export",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_csv_export_rejects_unassigned_user(self):
+        response = self.client.simulate_get(
+            "/api/containers/container-1/metrics/export",
+            headers=self.headers(self.other_token),
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_csv_export_rejects_unknown_container(self):
+        response = self.client.simulate_get(
+            "/api/containers/missing/metrics/export",
+            headers=self.headers(self.admin_token),
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_csv_export_allowed_for_assigned_user(self):
+        import csv
+        from io import StringIO
+
+        response = self.client.simulate_get(
+            "/api/containers/container-1/metrics/export",
+            params={"range": "1h"},
+            headers=self.headers(self.user_token),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/csv", response.headers["content-type"])
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        self.assertIn("attachment", response.headers["content-disposition"])
+        rows = list(csv.DictReader(StringIO(response.text)))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[-1]["cpu_percent"], "20.0")
+        self.assertEqual(rows[-1]["chart_resolution_seconds"], "10")
+
+    def test_csv_export_allowed_for_admin(self):
+        response = self.client.simulate_get(
+            "/api/containers/container-1/metrics/export",
+            headers=self.headers(self.admin_token),
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_csv_export_24h_uses_aggregated_points(self):
+        import csv
+        from io import StringIO
+
+        response = self.client.simulate_get(
+            "/api/containers/container-1/metrics/export",
+            params={"range": "24h"},
+            headers=self.headers(self.user_token),
+        )
+        self.assertEqual(response.status_code, 200)
+        rows = list(csv.DictReader(StringIO(response.text)))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["chart_resolution_seconds"], "300")
+        self.assertEqual(float(rows[0]["sample_count"]), 30.0)
+
+    def test_csv_export_invalid_range_is_rejected(self):
+        response = self.client.simulate_get(
+            "/api/containers/container-1/metrics/export",
+            params={"range": "infinite"},
+            headers=self.headers(self.admin_token),
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_csv_formula_injection_is_escaped(self):
+        from app.api.metrics_export import safe_csv_cell
+        self.assertEqual(safe_csv_cell("=2+2"), "'=2+2")
+        self.assertEqual(safe_csv_cell("  @evil"), "'  @evil")
+        self.assertEqual(safe_csv_cell("-1+1"), "'-1+1")
+        self.assertEqual(safe_csv_cell(-12), -12)
+
+
 if __name__ == "__main__":
     unittest.main()
