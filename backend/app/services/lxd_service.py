@@ -89,10 +89,20 @@ class LXDService:
     """
 
     def __init__(self, client=None):
-        self.client = (
-            client if client is not None
-            else pylxd.Client(project="default")
-        )
+        # Do not connect to LXD while constructing
+        # the Falcon application or test fixtures.
+        self._client = client
+
+    @property
+    def client(self):
+        """Connect only when an LXD operation needs it."""
+
+        if self._client is None:
+            self._client = pylxd.Client(
+                project="default"
+            )
+
+        return self._client
 
     def list_containers(self):
         """

@@ -28,6 +28,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 2
 
       - name: Configure Python
         uses: actions/setup-python@v7
@@ -95,7 +96,6 @@ jobs:
 
       - name: Check for whitespace errors
         run: git diff --check HEAD^
-        if: github.event_name == 'push' && github.event.created == false
 
       - name: Check shell script syntax
         shell: bash
