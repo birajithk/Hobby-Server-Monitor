@@ -9,7 +9,19 @@ This directory contains the Falcon backend for **Hobby Server Monitor**, an on-p
 - LXD container creation, adoption, lifecycle operations, and resource-limit updates.
 - User invitations, roles, revocation/reactivation, ownership, and resource quotas.
 - Restricted, non-interactive command execution inside authorized containers.
-- Current and historical container-metrics APIs.
+- Current and historical container-metrics APIs, including authorized CSV export.
+
+## Historical metrics CSV export
+
+Authenticated Admins and users assigned to a managed container can
+download its chart-ready TinyFlux history using
+`GET /api/containers/{container_id}/metrics/export?range=1h`.
+Supported ranges are `1h`, `6h`, `24h`, `7d`, and `30d`.
+The Falcon endpoint applies the same container-level authorization
+and range validation as JSON history, limits output rows, and escapes
+spreadsheet formula-like text. Longer ranges use chart aggregates,
+not an unrestricted raw TinyFlux dump. The CSV download was tested
+in the browser and its access controls are covered by backend tests.
 
 ## Directory structure
 

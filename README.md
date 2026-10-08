@@ -679,6 +679,7 @@ Managed disk shrinking is deliberately rejected.
 | --- | --- | --- | --- |
 | GET | `/api/containers/{container_id}/metrics/latest` | Assigned user or Admin | Latest observation |
 | GET | `/api/containers/{container_id}/metrics/history?range=1h` | Assigned user or Admin | Historical observations |
+| GET | `/api/containers/{container_id}/metrics/export?range=1h` | Assigned user or Admin | Download authorized historical CSV (ranges: 1h, 6h, 24h, 7d, 30d) |
 | POST | `/api/containers/{container_id}/exec` | Assigned user or Admin | Execute container command |
 
 Example terminal request:
@@ -890,9 +891,10 @@ Run deployment scripts from the repository root.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs Falcon tests on
 Python 3.12, Ruff critical checks, an Astro build on Node.js 22,
-and repository/shell-script checks. The CSV-export feature commit
-`bb60cd69` passed the full CI workflow on 2026-10-08.
-Mocked LXD-dependent unit tests supplement, but do not replace,
+and repository/shell-script checks. The final application and
+documentation commit `95602a0` passed all three GitHub Actions
+jobs on `main` on 2026-10-08. Mocked LXD-dependent unit tests
+supplement, but do not replace,
 manual verification with real LXD on Ubuntu.
 
 The Admin can explicitly adopt eligible unmanaged LXD containers and

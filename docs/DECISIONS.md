@@ -490,8 +490,9 @@ A design decision is not evidence of successful implementation. These items must
 ## 26. Implemented Optional Features (verified 2026-10-08)
 
 The repository includes GitHub Actions CI for backend tests,
-critical lint, Astro build, and static/shell checks; the CSV-export
-commit `bb60cd69` passed. GitHub runners have no privileged LXD
+critical lint, Astro build, and static/shell checks; all three
+jobs passed on `main` at `95602a0` (2026-10-08). GitHub runners
+have no privileged LXD
 socket, so LXD-dependent unit tests use mocks; real-LXD acceptance
 checks are separate.
 

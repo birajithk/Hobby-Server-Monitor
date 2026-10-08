@@ -59,7 +59,7 @@ The main privilege transition is **from Falcon application decisions to host-pri
 | T6 | Tampering: externally created container inserted into managed quota accounting | Admin-only explicit adoption; verify owner, quota, security and LXD state; immutable application IDs | External LXD drift, manual renaming and misconfiguration remain operational risks; full fault-injection coverage incomplete |
 | T7 | Denial of service: infinite exec output, long commands, request amplification | Configurable terminal limits; cross-process concurrency locks; collector polling independent of active tabs; service restart policies | No extended high-concurrency or large-fleet benchmark; LXD itself remains a shared resource |
 | T8 | Tampering: quotas bypassed by concurrent operations or external edits | SQLite transactions, allocation lock, quota validation, LXD pre-update state comparison, disk shrink rejected | Concurrent adversarial allocations and all LXD failure paths not exhaustively tested |
-| T9 | Information disclosure: credentials in Git, logs or HTTP | `.env` ignored, root-owned production env (`0600`), secure HTTPS cookies, protected TLS key, token hashes in database, terminal audit excludes raw command/output | Git-history and third-party logs require final audit; prior accidentally displayed session secret was rotated |
+| T9 | Information disclosure: credentials in Git, logs or HTTP | `.env` ignored, root-owned production env (`0600`), secure HTTPS cookies, protected TLS key, token hashes in database, terminal audit excludes raw command/output | Gitleaks scanned 63 Git-history commits with no findings on 2026-10-08, but automated scans are not conclusive; independent review of third-party logs remains outstanding; prior exposed session secret was rotated |
 | T10 | Repudiation: privileged actions without audit | SQLite audit events for user changes, container changes, and command-execution metadata | Audit table integrity depends on DB/host security; no external append-only audit sink |
 | T11 | Monitoring integrity/availability: LXD outage, stale metrics | Collector logs errors and retries future cycles; raw and five-minute TinyFlux storage; systemd recovery; API errors | Full real-LXD outage/recovery measurement not completed; long-duration file growth unmeasured |
 | T12 | Network interception / HTTPS misconfiguration | Nginx HTTPS locally tested using mkcert, `COOKIE_SECURE=true`, strict protected environment and TLS key permissions | Local mkcert certificates are not a substitute for a publicly trusted certificate and real deployment hostname |
@@ -74,9 +74,9 @@ A stronger later design would run the public Falcon API **without** LXD administ
 
 | Check | Current evidence / status |
 | --- | --- |
-| Backend session authentication, expiration, revocation and CSRF | Automated tests passed in GitHub Actions through CSV-export commit bb60cd69 (2026-10-08); mocked LXD CI tests supplement, but do not replace, real LXD verification |
+| Backend session authentication, expiration, revocation and CSRF | All three GitHub Actions jobs passed on `main` at `95602a0` (2026-10-08); mocked LXD CI tests supplement, but do not replace, real LXD verification |
 | Admin role and assigned-container authorization | Backend tests and previously reported manual acceptance tests |
-| Metrics CSV export authorization and spreadsheet injection | Endpoint reuses per-container history authorization; CSV safety and access checks covered by tests; latest CI run passed (2026-10-08) |
+| Metrics CSV export authorization and spreadsheet injection | Endpoint reuses per-container history authorization; CSV safety and access checks covered by tests; all three CI jobs passed on `main` at `95602a0` (2026-10-08) |
 | Quota accounting, resource drift, disk-shrink rejection | Reported 12-item real-LXD verification passed |
 | Collector restart, Falcon restart and host reboot | Local deployment verification reported passed |
 | Local HTTPS health, Google Admin bootstrap | Locally verified; SQLite contained one active Admin |

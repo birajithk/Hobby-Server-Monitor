@@ -7,13 +7,19 @@ The dashboard uses client-side JavaScript and same-origin `/api` and `/auth` end
 ## Features
 
 - Google sign-in and authenticated navigation.
-- Container listing, details, and current/historical metrics.
+- Container listing, details, current/historical metrics, and an Export CSV download for supported history ranges.
 - Container User resource quota overview.
 - Restricted, non-interactive container command terminal.
 - Admin host information and allocated-resource overview.
 - Admin user management, invitations, quotas, and access assignments.
-- Admin container creation, lifecycle actions, resource-limit updates, and ownership management.
+- Admin container creation, explicit adoption of eligible unmanaged LXD containers, lifecycle actions, resource-limit updates, and ownership management.
 - Responsive layouts and visibility-aware dashboard polling.
+
+Admins can use **Manage containers → Adopt external** to select an
+unmanaged container and active owner; the Falcon backend performs
+security, host-capacity and quota checks before adoption.
+On **Container Details**, **Export CSV** downloads only the
+selected, authorized container's historical metric range.
 
 ## Requirements
 

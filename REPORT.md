@@ -406,7 +406,8 @@ collector recovery.
 GitHub Actions CI is implemented in `.github/workflows/ci.yml`.
 The workflow checks Falcon backend tests on Python 3.12, Ruff critical
 lint, the Astro production build on Node 22, and repository/script
-checks. The CSV-export feature commit `bb60cd69` passed CI on
+checks. The CSV-export feature commit `bb60cd69` passed CI,
+and all three CI jobs also passed for `main` at `95602a0` on
 2026-10-08. LXD-dependent unit tests use mocks in CI; real LXD
 integration was verified separately on the Ubuntu development host.
 
@@ -837,7 +838,7 @@ Verified evidence includes:
 - Nginx HTTPS health and static frontend responses.
 - Production bootstrap Admin in SQLite.
 - Measured CPU, RAM and short-window storage growth.
-- Successful GitHub Actions tests, critical lint, Astro build and repository checks through CSV-export commit `bb60cd69`.
+- Successful GitHub Actions tests, critical lint, Astro build and repository checks on `main` at commit `95602a0` (2026-10-08).
 - Guarded existing-host deployment updates, authenticated adoption UI and historical CSV download tested on the development host.
 
 Outstanding verification and scope limitations are documented above and in TODO.md.
@@ -847,5 +848,5 @@ The final repository review must also check:
 - Automated Gitleaks history scan passed across 63 commits; supplement it with manual review where necessary.
 - All README setup instructions are accurate.
 - The report's development-hour estimates have been filled in.
-- The final tested branch is merged into main and CI passes on main.
+- Completed: the verified feature branch was fast-forward merged into `main`; all three CI jobs passed at `95602a0`.
 - The repository link is submitted before October 9, 2026.

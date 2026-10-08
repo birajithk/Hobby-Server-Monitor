@@ -382,7 +382,7 @@ Additional verified optional workflows (2026-10-08):
 
 - [x] Browser Admin adoption of external default-project LXD containers, with explicit owner and quota checks; tested on real LXD.
 - [x] The installed Falcon backend and static Astro deployment passed the guarded post-update preflight and systemd/HTTPS/TinyFlux checks.
-- [x] GitHub Actions reported success for CSV-export commit `bb60cd69`.
+- [x] GitHub Actions reported success for CSV-export commit `bb60cd69` and on `main` at `95602a0` (three jobs).
 - [x] A historical `1h` CSV was downloaded from the browser and structurally inspected (179 rows, 16 columns; available recorded window approximately 30 minutes).
 
 Optional enhancements must not delay baseline security or functionality.
@@ -401,6 +401,6 @@ Optional enhancements must not delay baseline security or functionality.
 - [ ] Review code for dead code and unnecessary dependencies.
 - [ ] Ensure every submitted component can be explained.
 - [x] Review the submission instructions: push the repository and reply to the original task email with its link before 2026-10-09.
-- [ ] Merge the final tested feature branch into `main` after final review.
-- [ ] Push the **final** verified implementation, documentation and benchmark results to `main`.
+- [x] Fast-forward merge the final tested feature branch into `main` (commit `95602a0`, 2026-10-08).
+- [x] Push the verified implementation, documentation and benchmarks to `main`; all three CI jobs passed at `95602a0` (2026-10-08).
 - [ ] Submit the repository link before October 9, 2026.
