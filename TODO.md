@@ -46,7 +46,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Inspect available storage drivers.
 - [x] Create a quota-capable LXD storage pool.
 - [x] Verify that container disk limits are enforced.
-- [ ] Decide whether the default LXD profile needs changing; the application currently creates containers with explicit root-disk and NIC devices, avoiding inherited profile devices.
+- [x] Decide whether the default LXD profile needs changing; the application currently creates containers with explicit root-disk and NIC devices, avoiding inherited profile devices.
 - [x] Verify LXD networking.
 - [x] Discover supported Ubuntu image aliases.
 - [x] Create an unprivileged development container.
@@ -214,7 +214,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Enforce container-specific permissions.
 - [x] Use actual pylxd execution.
 - [x] Establish the Admin execution identity.
-- [x] Provision and verify the non-root Container User identity in the original development container.
+- [x] Provision and verify the restricted non-root terminal identity in newly created managed containers; creation provisions and validates `hsm-user` before the container is registered as successfully managed.
 - [x] Verify/provision the restricted non-root terminal identity in each newly created managed container; creation currently starts LXD without a verified automatic identity-provisioning step.
 - [x] Prevent unrestricted sudo for Container Users.
 - [x] Implement command-length limits.
@@ -259,7 +259,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Implement container lifecycle controls.
 - [x] Implement Admin resource-limit updates from the Astro dashboard (Falcon PATCH endpoint already exists).
 - [x] Expose saved current resource limits through an authenticated Admin GET endpoint for form prefill.
-- [ ] Verify resource-limit edits made through the dashboard against real LXD containers, database allocations and metrics.
+- [x] Verify resource-limit edits made through the dashboard against real LXD containers, database allocations and metrics.
 - [x] Reject resource updates when LXD and application accounting have drifted.
 - [x] Prevent disk-limit reduction in the initial resource-update policy.
 - [x] Implement deletion confirmation.
