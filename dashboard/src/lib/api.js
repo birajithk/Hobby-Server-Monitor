@@ -377,6 +377,17 @@ export function createManagedContainer(payload, csrfToken) {
   });
 }
 
+export function adoptExternalContainer(name, ownerId, csrfToken) {
+  return apiRequest("/api/admin/containers/adopt", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify({ name, owner_id: ownerId }),
+  });
+}
+
 export function performContainerAction(
   containerId,
   action,

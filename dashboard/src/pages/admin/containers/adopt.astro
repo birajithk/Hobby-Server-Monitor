@@ -1,0 +1,376 @@
+---
+const title = "Adopt External Container — Hobby Server Monitor";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+  </head>
+
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h1>Hobby Server<br />Monitor</h1>
+        <nav aria-label="Main navigation">
+          <a href="/" class="nav-item">Overview</a>
+          <a href="/container" class="nav-item">Container details</a>
+          <a href="/admin/containers" class="nav-item active">Manage containers</a>
+          <a href="/admin/users" class="nav-item">Users</a>
+        </nav>
+        <div id="account" class="account">Loading account...</div>
+      </aside>
+
+      <main>
+        <header class="page-header">
+          <a class="back-link" href="/admin/containers">← Manage containers</a>
+          <h2>Adopt external container</h2>
+          <p>
+            Assign an existing LXD container to an active user without
+            recreating the container or changing its configuration.
+          </p>
+        </header>
+
+        <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Container adoption</h3>
+              <p class="muted">
+                Only unmanaged containers in LXD's default project can be selected.
+                Ownership and resource accounting are verified by the Falcon backend.
+              </p>
+            </div>
+            <button id="refresh-button" type="button" class="secondary" disabled>
+              Refresh list
+            </button>
+          </div>
+
+          <form id="adoption-form">
+            <div class="form-grid">
+              <div>
+                <label for="adoption-container">Unmanaged LXD container</label>
+                <select id="adoption-container" required disabled>
+                  <option value="">Loading containers...</option>
+                </select>
+                <small id="container-count">Loading...</small>
+              </div>
+
+              <div>
+                <label for="adoption-owner">Assign owner</label>
+                <select id="adoption-owner" required disabled>
+                  <option value="">Loading active users...</option>
+                </select>
+                <small id="owner-status">Only active application users are eligible.</small>
+              </div>
+            </div>
+
+            <div class="quota-summary" id="quota-summary" aria-live="polite">
+              Select an owner to see their remaining RAM, CPU, and disk quota.
+            </div>
+
+            <p class="muted">
+              Adoption requires explicit LXD memory, CPU and root-disk limits,
+              a quota-verified storage pool, sufficient host capacity, and an
+              owner with enough remaining quota. The container's existing
+              filesystem and run state are preserved.
+            </p>
+
+            <div class="actions">
+              <a class="back-link" href="/admin/containers">Cancel</a>
+              <button id="adopt-button" type="submit" disabled>Adopt container</button>
+            </div>
+          </form>
+        </section>
+
+        <section id="success-panel" class="panel hidden" aria-live="polite">
+          <h3>Container adopted</h3>
+          <p id="success-text"></p>
+          <p class="muted">
+            Ownership and access have been registered in the application.
+            The container's LXD configuration was not changed.
+          </p>
+          <div class="actions">
+            <button id="adopt-another" type="button" class="secondary">Adopt another</button>
+            <a href="/admin/containers" class="action-link">
+              Go to managed containers →
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      import {
+        getCurrentUser,
+        getContainers,
+        getAdminUsers,
+        adoptExternalContainer,
+      } from "../../../lib/api.js";
+
+      const $ = (selector) => document.querySelector(selector);
+      const containerSelect = $("#adoption-container");
+      const ownerSelect = $("#adoption-owner");
+      const form = $("#adoption-form");
+      const submit = $("#adopt-button");
+      const refresh = $("#refresh-button");
+      const notice = $("#notice");
+
+      let csrfToken = "";
+      let unmanaged = [];
+      let owners = [];
+      let busy = false;
+      let loaded = false;
+
+      const GiB = 1024 ** 3;
+      const formatGiB = (bytes) =>
+        `${(Number(bytes || 0) / GiB).toFixed(2)} GiB`;
+
+      function showNotice(message, kind = "error") {
+        notice.textContent = message;
+        notice.className = `notice ${kind}`;
+      }
+
+      function clearNotice() {
+        notice.textContent = "";
+        notice.className = "notice hidden";
+      }
+
+      function optionList(select, records, placeholder) {
+        select.replaceChildren(new Option(placeholder, ""));
+        for (const { value, label } of records) {
+          select.add(new Option(label, value));
+        }
+      }
+
+      function updateOwnerQuota() {
+        const owner = owners.find((user) => user.id === ownerSelect.value);
+        if (!owner) {
+          $("#quota-summary").textContent =
+            "Select an owner to see their remaining RAM, CPU, and disk quota.";
+          return;
+        }
+        const quota = owner.quota || {};
+        const allocated = owner.allocation || {};
+        const remaining = (key) => Math.max(
+          0,
+          Number(quota[key] || 0) - Number(allocated[key] || 0),
+        );
+        $("#quota-summary").textContent =
+          `Remaining owner quota — RAM: ${formatGiB(remaining("ram_bytes"))}, ` +
+          `CPU: ${remaining("cpu_cores")} cores, ` +
+          `Disk: ${formatGiB(remaining("disk_bytes"))}. ` +
+          "A final server-side quota check occurs when you adopt.";
+      }
+
+      function syncControls() {
+        containerSelect.disabled = !loaded || busy || unmanaged.length === 0;
+        ownerSelect.disabled = !loaded || busy || owners.length === 0;
+        refresh.disabled = !csrfToken || busy;
+        submit.disabled =
+          !loaded || busy || !csrfToken ||
+          !containerSelect.value || !ownerSelect.value;
+      }
+
+      async function loadOptions() {
+        busy = true;
+        loaded = false;
+        syncControls();
+        const priorContainer = containerSelect.value;
+        const priorOwner = ownerSelect.value;
+        try {
+          const [containerResult, userResult] = await Promise.all([
+            getContainers(),
+            getAdminUsers(),
+          ]);
+          const containers = Array.isArray(containerResult)
+            ? containerResult
+            : containerResult?.containers || [];
+          const users = Array.isArray(userResult)
+            ? userResult
+            : userResult?.users || [];
+
+          unmanaged = containers.filter(
+            (item) => item.managed === false && typeof item.name === "string",
+          ).sort((a, b) => a.name.localeCompare(b.name));
+          owners = users.filter(
+            (user) => user.status === "active" &&
+              typeof user.id === "string" && typeof user.email === "string",
+          );
+
+          optionList(containerSelect, unmanaged.map((item) => ({
+            value: item.name,
+            label: `${item.name} (${item.status || "Unknown"})`,
+          })), "Select unmanaged container");
+          optionList(ownerSelect, owners.map((user) => ({
+            value: user.id,
+            label: `${user.name ? `${user.name} — ` : ""}${user.email} (${user.role})`,
+          })), "Select active owner");
+
+          if (unmanaged.some((item) => item.name === priorContainer)) {
+            containerSelect.value = priorContainer;
+          }
+          if (owners.some((user) => user.id === priorOwner)) {
+            ownerSelect.value = priorOwner;
+          }
+
+          $("#container-count").textContent =
+            `${unmanaged.length} unmanaged container(s) available`;
+          $("#owner-status").textContent =
+            `${owners.length} active owner(s) available`;
+          loaded = true;
+          updateOwnerQuota();
+          clearNotice();
+        } catch (error) {
+          unmanaged = [];
+          owners = [];
+          optionList(containerSelect, [], "Unable to load containers");
+          optionList(ownerSelect, [], "Unable to load users");
+          showNotice(error?.message || "Unable to load adoption options.");
+        } finally {
+          busy = false;
+          syncControls();
+        }
+      }
+
+      async function initialize() {
+        try {
+          const response = await getCurrentUser();
+          const user = response.user || response;
+          if (user.role !== "admin") {
+            showNotice("403 — Administrator access is required.");
+            return;
+          }
+          csrfToken = response.csrf_token || "";
+          if (!csrfToken) {
+            showNotice("CSRF token is unavailable. Sign in again.");
+            return;
+          }
+          $("#account").replaceChildren();
+          const label = document.createElement("strong");
+          label.textContent = user.name || user.email || "Admin";
+          const role = document.createElement("span");
+          role.textContent = "Admin";
+          $("#account").append(label, role);
+          await loadOptions();
+        } catch (error) {
+          showNotice(error?.message || "Unable to load adoption page.");
+        }
+      }
+
+      ownerSelect.addEventListener("change", () => {
+        updateOwnerQuota();
+        syncControls();
+      });
+      containerSelect.addEventListener("change", syncControls);
+      refresh.addEventListener("click", loadOptions);
+      $("#adopt-another").addEventListener("click", async () => {
+        $("#success-panel").classList.add("hidden");
+        form.closest(".panel").classList.remove("hidden");
+        await loadOptions();
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (busy || !loaded || !csrfToken || !form.reportValidity()) return;
+
+        const name = containerSelect.value;
+        const ownerId = ownerSelect.value;
+        const container = unmanaged.find((item) => item.name === name);
+        const owner = owners.find((item) => item.id === ownerId);
+        if (!container || !owner) {
+          showNotice("Selection changed. Refresh and try again.");
+          return;
+        }
+
+        if (!window.confirm(
+          `Adopt existing LXD container "${name}" and assign it to ` +
+          `${owner.email}?\n\n` +
+          "This registers ownership and quota in Hobby Server Monitor. " +
+          "It does not recreate or restart the LXD container.",
+        )) return;
+
+        busy = true;
+        syncControls();
+        clearNotice();
+        try {
+          const result = await adoptExternalContainer(name, ownerId, csrfToken);
+          $("#success-text").textContent =
+            `${result.name || name} is now managed; owner: ${owner.email}.`;
+          $("#success-panel").classList.remove("hidden");
+          form.closest(".panel").classList.add("hidden");
+          showNotice("Container adoption completed successfully.", "success");
+        } catch (error) {
+          showNotice(error?.message || "Container adoption failed.");
+          // The service remains authoritative. Refresh after a 409 to confirm
+          // whether another Admin already adopted the container.
+        } finally {
+          busy = false;
+          syncControls();
+        }
+      });
+
+      initialize();
+    </script>
+
+    <style is:global>
+      :root { font-family: Inter, system-ui, sans-serif; color: #e5e7eb; background: #080d16; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: #080d16; }
+      .layout { min-height: 100vh; display: grid; grid-template-columns: 245px minmax(0, 1fr); }
+      .sidebar { padding: 28px 18px; background: #101826; border-right: 1px solid #1f2937; }
+      .sidebar h1 { font-size: 19px; line-height: 1.35; margin: 0 0 35px; }
+      .sidebar nav { display: grid; gap: 7px; }
+      .nav-item { display: block; text-decoration: none; padding: 12px; border-radius: 8px; color: #cbd5e1; font-size: 14px; }
+      .nav-item:hover, .nav-item.active { color: #fff; background: #1e293b; }
+      .account { margin-top: 32px; display: grid; gap: 4px; color: #94a3b8; font-size: 12px; overflow-wrap: anywhere; }
+      .account strong { color: #e5e7eb; }
+      main { width: 100%; max-width: 1050px; margin: 0 auto; padding: 38px; }
+      .page-header h2 { font-size: 30px; margin: 12px 0; }
+      .page-header p { max-width: 720px; color: #94a3b8; line-height: 1.6; }
+      .back-link { color: #93c5fd; font-size: 13px; text-decoration: none; }
+      .back-link:hover { text-decoration: underline; }
+      .panel { margin-top: 24px; background: #101826; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; }
+      .panel h3 { margin: 0 0 8px; font-size: 18px; }
+      .panel-header { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
+      .muted, small { display: block; color: #94a3b8; font-size: 13px; line-height: 1.6; }
+      .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 24px; }
+      label { display: block; font-size: 13px; color: #cbd5e1; margin-bottom: 7px; }
+      select { width: 100%; min-width: 0; padding: 11px 13px; border: 1px solid #334155; border-radius: 8px; color: #e5e7eb; background: #080d16; }
+      select:focus, button:focus-visible, a:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+      small { margin-top: 7px; }
+      .quota-summary { background: #172033; border: 1px solid #334155; border-radius: 9px; padding: 15px; margin: 20px 0; color: #cbd5e1; font-size: 13px; line-height: 1.6; }
+      button, .action-link { border-radius: 8px; border: 1px solid #2563eb; color: #fff; background: #1d4ed8; cursor: pointer; padding: 11px 15px; font-size: 13px; font-weight: 600; text-decoration: none; }
+      button:hover:not(:disabled), .action-link:hover { background: #2563eb; }
+      button:disabled { opacity: .45; cursor: not-allowed; }
+      button.secondary { color: #cbd5e1; border-color: #334155; background: transparent; }
+      button.secondary:hover:not(:disabled) { background: #22304a; }
+      .actions { margin-top: 22px; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 18px; }
+      .notice { margin-top: 18px; border: 1px solid #7f1d1d; border-radius: 8px; padding: 13px 15px; background: #2b1217; color: #fecaca; font-size: 13px; }
+      .notice.success { border-color: #14532d; background: #10271c; color: #bbf7d0; }
+      .hidden { display: none !important; }
+      #success-panel p { line-height: 1.5; }
+      .action-link { display: inline-block; margin-top: 10px; }
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+        main { padding: 24px; }
+      }
+      @media (max-width: 650px) {
+        main { padding: 16px; }
+        .panel { padding: 17px; }
+        .form-grid { grid-template-columns: 1fr; }
+        .panel-header { flex-direction: column; }
+        .page-header h2 { font-size: 25px; }
+      }
+    </style>
+
+    <script>
+      import { initializeNavigation } from "../../../lib/navigation.js";
+      initializeNavigation();
+    </script>
+  </body>
+</html>
