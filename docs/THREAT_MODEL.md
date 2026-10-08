@@ -81,7 +81,7 @@ A stronger later design would run the public Falcon API **without** LXD administ
 | Collector restart, Falcon restart and host reboot | Local deployment verification reported passed |
 | Local HTTPS health, Google Admin bootstrap | Locally verified; SQLite contained one active Admin |
 | Uninvited Google account on deployed HTTPS | **Pending** |
-| Git history and credential disclosure review | **Pending until scanner and manual review** |
+| Git history and credential disclosure review | Gitleaks scanned 63 commits with no findings on 2026-10-08; automated detection does not guarantee the absence of secrets |
 | Dangerous LXD operations / hostile containers | **Not exhaustively penetration tested** |
 | Publicly trusted remote HTTPS deployment | **Not verified** |
 | Long-duration metrics, LXD outage/recovery and load benchmarks | **Pending** |

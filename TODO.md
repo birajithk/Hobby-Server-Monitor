@@ -390,17 +390,17 @@ Optional enhancements must not delay baseline security or functionality.
 ## Phase 14 — Final Review and Submission
 
 - [ ] Review the complete implementation against PROJECT_SPEC.md.
-- [ ] Update DECISIONS.md with any actual design changes.
-- [ ] Verify that TODO.md reflects the real completion status.
+- [x] Update DECISIONS.md with actual optional-feature decisions in Section 26.
+- [x] Reconcile TODO.md with verified results and outstanding limitations.
 - [ ] Confirm all baseline features work end to end.
 - [x] Confirm the collector runs independently.
 - [x] Confirm historical metrics survive a restart.
 - [x] Confirm resource measurements are published.
 - [x] Confirm all configuration variables are documented.
-- [ ] Confirm no secrets are present in Git history.
+- [x] Run automated Git history secret scan: Gitleaks scanned 63 commits and found no leaks (2026-10-08). Automated scans are not conclusive.
 - [ ] Review code for dead code and unnecessary dependencies.
 - [ ] Ensure every submitted component can be explained.
-- [ ] Verify the required submission instructions from the task email.
+- [x] Review the submission instructions: push the repository and reply to the original task email with its link before 2026-10-09.
 - [ ] Merge the final tested feature branch into `main` after final review.
 - [ ] Push the **final** verified implementation, documentation and benchmark results to `main`.
 - [ ] Submit the repository link before October 9, 2026.

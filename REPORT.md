@@ -844,8 +844,8 @@ Outstanding verification and scope limitations are documented above and in TODO.
 
 The final repository review must also check:
 
-- Real secrets have not been committed.
+- Automated Gitleaks history scan passed across 63 commits; supplement it with manual review where necessary.
 - All README setup instructions are accurate.
 - The report's development-hour estimates have been filled in.
-- The final tested branch is merged into main.
+- The final tested branch is merged into main and CI passes on main.
 - The repository link is submitted before October 9, 2026.
