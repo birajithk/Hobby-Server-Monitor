@@ -331,17 +331,17 @@ A task is complete only when its implementation has been verified. Checkmarks be
 
 ## Phase 11 — Resource Benchmarking (P0)
 
-- [ ] Record host hardware and OS information.
-- [ ] Measure idle Falcon memory and CPU.
-- [ ] Measure idle collector memory and CPU.
-- [ ] Measure resource usage with active containers.
-- [ ] Measure resource usage with one dashboard tab.
-- [ ] Measure resource usage with multiple dashboard tabs.
-- [ ] Measure resource usage with no dashboard tabs.
+- [x] Record host hardware and OS information.
+- [x] Measure idle Falcon memory and CPU.
+- [x] Measure idle collector memory and CPU.
+- [x] Measure resource usage with active containers; one running and two stopped containers were present.
+- [x] Measure resource usage with one dashboard tab.
+- [x] Measure resource usage with multiple dashboard tabs.
+- [x] Measure resource usage with no dashboard tabs.
 - [ ] Measure behavior when LXD is unavailable.
-- [ ] Estimate and verify metric-storage growth.
-- [ ] Record commands, duration and test conditions.
-- [ ] Publish real results in REPORT.md.
+- [ ] Estimate and verify metric-storage growth over the retention period; short-window growth has been measured and documented.
+- [x] Record commands, duration and test conditions.
+- [x] Publish real results in REPORT.md.
 
 ## Phase 12 — Documentation (P1)
 
@@ -363,7 +363,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [ ] Record actual problems and solutions.
 - [ ] Record lessons learned.
 - [ ] Document implemented bonuses.
-- [ ] Document actual resource measurements.
+- [x] Document actual resource measurements.
 - [ ] Document known limitations.
 - [ ] Disclose AI tool usage.
 - [ ] Verify README instructions on a clean environment.
