@@ -235,7 +235,7 @@ cd ..
 From the repository root:
 
 ```bash
-cp .env.example .env
+cp .env.example backend/.env
 ```
 
 Generate a session secret:
@@ -244,10 +244,10 @@ Generate a session secret:
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Edit `.env`:
+Edit `backend/.env`:
 
 ```bash
-nano .env
+nano backend/.env
 ```
 
 Configure:
@@ -266,9 +266,9 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:4321/auth/google/callback
 COOKIE_SECURE=false
 ```
 
-Do not commit `.env`.
+Do not commit `backend/.env`.
 
-The application configuration loads the repository-root `.env` file. Relative SQLite and TinyFlux paths are interpreted relative to the process working directory.
+The Falcon backend loads `backend/.env` through `backend/app/config.py`. Relative SQLite and TinyFlux paths are interpreted relative to the process working directory.
 
 ### 5.6 Configure Google OAuth
 
@@ -282,7 +282,7 @@ The application configuration loads the repository-root `.env` file. Relative SQ
 http://localhost:4321/auth/google/callback
 ```
 
-6. Copy the client ID and client secret into `.env`.
+6. Copy the client ID and client secret into `backend/.env`.
 7. If the OAuth application is in Testing mode, add the intended Google account as a test user.
 8. Set `BOOTSTRAP_ADMIN_EMAIL` to the Google email address intended for the first Admin.
 
@@ -307,6 +307,8 @@ The initializer creates the database if necessary and applies supported schema m
 It can also be run against an already initialized database.
 
 ### 5.8 Start the Falcon backend
+
+Development only: Start Gunicorn manually only when the systemd-managed Falcon service is not already occupying port 8000. On an installed production deployment, the Falcon backend starts automatically through hobby-server-monitor-api.service. Do not run a second Gunicorn instance on the same port.
 
 Terminal 1:
 
