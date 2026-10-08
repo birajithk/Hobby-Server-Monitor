@@ -403,8 +403,12 @@ Manual real-LXD acceptance checks were also performed, including
 resource editing, quotas, drift handling, role restrictions and
 collector recovery.
 
-No GitHub Actions CI pipeline is claimed as implemented in this
-report.
+GitHub Actions CI is implemented in `.github/workflows/ci.yml`.
+The workflow checks Falcon backend tests on Python 3.12, Ruff critical
+lint, the Astro production build on Node 22, and repository/script
+checks. The CSV-export feature commit `bb60cd69` passed CI on
+2026-10-08. LXD-dependent unit tests use mocks in CI; real LXD
+integration was verified separately on the Ubuntu development host.
 
 ### Additional administrative and monitoring functions
 
@@ -415,14 +419,41 @@ overviews.
 These are useful extensions around the required container
 management workflow; they are not substitutes for baseline tests.
 
+### Existing-host update tooling, adoption UI and CSV export
+
+Two guarded helpers were added for an **already-provisioned** Ubuntu
+installation: `deploy/scripts/install-systemd-units.sh` reconciles the
+three systemd units, and `deploy/scripts/update-application.sh` stages
+code-only updates with rollback copies and service health checks.
+They do not constitute a tested fresh-host provisioning installer.
+
+The systemd unit installer was verified in check/apply mode with no
+unit changes; after a code update, API, HTTPS, Nginx, SQLite and
+TinyFlux checks passed, including fresh collector measurements.
+These tests do not imply a publicly trusted remote TLS deployment.
+
+The Astro Admin dashboard provides an explicit external-container
+adoption page. This calls the Falcon Admin-only adoption endpoint;
+that endpoint checks LXD security configuration, hardware/storage
+budgets and an active owner's quotas without recreating the instance.
+Real LXD browser adoption was reported successful.
+
+Container Details includes a CSV export for the five historical chart
+ranges (1h, 6h, 24h, 7d and 30d). Its Falcon endpoint reuses the
+same container-access checks as historical JSON metrics. CSV cells
+are protected against spreadsheet formula injection. The CSV follows
+the charts' sampling/aggregation resolution, not a guaranteed dump
+of every raw TinyFlux point. Unit/security tests and GitHub CI passed,
+and a browser-downloaded 1h CSV was inspected (179 metric rows,
+16 columns, chronological timestamps). At download time, its actual
+available recorded history covered about 30 minutes.
+
 Not implemented or not claimed as bonuses:
 
 - Container snapshot management.
 - Automated alerting.
-- Authorized CSV metrics export.
 - Interactive WebSocket terminal.
 - Multi-host management.
-- GitHub Actions CI.
 
 ## Resource Measurements
 
@@ -756,8 +787,6 @@ The current implementation does not include:
 - Interactive WebSocket terminal sessions.
 - Snapshot and snapshot-restore management.
 - Automatic alerts.
-- Metrics CSV export.
-- GitHub Actions CI.
 
 The separate deployment instructions are tested on the development
 Ubuntu machine, but a second completely fresh host installation
@@ -808,6 +837,8 @@ Verified evidence includes:
 - Nginx HTTPS health and static frontend responses.
 - Production bootstrap Admin in SQLite.
 - Measured CPU, RAM and short-window storage growth.
+- Successful GitHub Actions tests, critical lint, Astro build and repository checks through CSV-export commit `bb60cd69`.
+- Guarded existing-host deployment updates, authenticated adoption UI and historical CSV download tested on the development host.
 
 Outstanding verification and scope limitations are documented above and in TODO.md.
 

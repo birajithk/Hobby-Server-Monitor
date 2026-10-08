@@ -74,8 +74,9 @@ A stronger later design would run the public Falcon API **without** LXD administ
 
 | Check | Current evidence / status |
 | --- | --- |
-| Backend session authentication, expiration, revocation and CSRF | Automated backend unit tests exist; final local CI run required |
+| Backend session authentication, expiration, revocation and CSRF | Automated tests passed in GitHub Actions through CSV-export commit bb60cd69 (2026-10-08); mocked LXD CI tests supplement, but do not replace, real LXD verification |
 | Admin role and assigned-container authorization | Backend tests and previously reported manual acceptance tests |
+| Metrics CSV export authorization and spreadsheet injection | Endpoint reuses per-container history authorization; CSV safety and access checks covered by tests; latest CI run passed (2026-10-08) |
 | Quota accounting, resource drift, disk-shrink rejection | Reported 12-item real-LXD verification passed |
 | Collector restart, Falcon restart and host reboot | Local deployment verification reported passed |
 | Local HTTPS health, Google Admin bootstrap | Locally verified; SQLite contained one active Admin |

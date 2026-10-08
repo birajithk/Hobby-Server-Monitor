@@ -356,7 +356,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [ ] Complete the API reference with full request and response examples; all registered endpoints, methods and access requirements are listed.
 - [x] Document every implemented environment variable.
 - [x] Document the LXD privilege decision and residual risk.
-- [ ] Complete the detailed security threat model.
+- [x] Complete the detailed security threat model in docs/THREAT_MODEL.md.
 - [x] Document deployment and verified recovery behavior.
 - [x] Complete REPORT.md.
 - [x] Record approximate time spent per area.
@@ -370,13 +370,20 @@ A task is complete only when its implementation has been verified. Checkmarks be
 
 ## Phase 13 — Bonuses (P2)
 
-- [ ] Add GitHub Actions CI for backend tests.
-- [ ] Add frontend build verification to CI.
-- [ ] Add automated linting and code checks.
-- [ ] Add useful integration and security tests.
-- [ ] Complete the detailed threat model.
-- [ ] Provide reproducible systemd deployment scripts.
-- [ ] Add authorized CSV metrics export if time permits.
+- [x] Add GitHub Actions CI for backend tests; latest export commit passed on 2026-10-08.
+- [x] Add Astro frontend production build verification to CI.
+- [x] Add Ruff critical lint, shell syntax and repository checks to CI.
+- [x] Add LXD lazy-connection and metrics CSV authorization regression tests; retain existing security tests.
+- [x] Complete the detailed threat model in docs/THREAT_MODEL.md.
+- [x] Provide and locally verify guarded systemd-unit installation and code-only application update/rollback scripts for an existing host (2026-10-08).
+- [x] Add authenticated, container-authorized historical metrics CSV export; CI and browser download verified (2026-10-08).
+
+Additional verified optional workflows (2026-10-08):
+
+- [x] Browser Admin adoption of external default-project LXD containers, with explicit owner and quota checks; tested on real LXD.
+- [x] The installed Falcon backend and static Astro deployment passed the guarded post-update preflight and systemd/HTTPS/TinyFlux checks.
+- [x] GitHub Actions reported success for CSV-export commit `bb60cd69`.
+- [x] A historical `1h` CSV was downloaded from the browser and structurally inspected (179 rows, 16 columns; available recorded window approximately 30 minutes).
 
 Optional enhancements must not delay baseline security or functionality.
 
@@ -394,6 +401,6 @@ Optional enhancements must not delay baseline security or functionality.
 - [ ] Review code for dead code and unnecessary dependencies.
 - [ ] Ensure every submitted component can be explained.
 - [ ] Verify the required submission instructions from the task email.
-- [x] Push the working implementation and merge it into `main`.
+- [ ] Merge the final tested feature branch into `main` after final review.
 - [ ] Push the **final** verified implementation, documentation and benchmark results to `main`.
 - [ ] Submit the repository link before October 9, 2026.

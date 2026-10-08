@@ -624,17 +624,20 @@ curl --fail -I http://127.0.0.1:8080/
 
 ## 11. Remaining Deployment Verification
 
-The following checks remain open until tested:
+The Ubuntu development host has verified localhost HTTPS browser
+access, independent collector persistence, service recovery after
+SIGKILL/reboot, and short-window CPU/RAM measurements in REPORT.md.
+On 2026-10-08, the code-only updater completed and the installed
+systemd units, Nginx, Falcon API, protected environment permissions,
+SQLite and TinyFlux were checked; the collector's metrics were fresh.
 
-- Full verification of collector independence
-  while Falcon is stopped.
-- End-to-end browser verification through Nginx.
-- Actual CPU and RAM benchmark measurements.
-- Long-duration metric storage growth measurements.
-- Additional service failure and permission tests.
+The following remain unverified or incomplete:
 
-These must not be reported as passed without
-actual verification.
+- Remote HTTPS access using a publicly trusted site certificate.
+- Fully independent clean-host provisioning and README walkthrough.
+- Long-duration metric-storage growth and large-scale load behavior.
+- A controlled LXD daemon outage/recovery benchmark and additional
+  hostile-input/privilege-boundary testing.
 
 ## 12. Deployment Design Decisions
 
@@ -659,5 +662,37 @@ application source code to support upgrades
 without replacing the SQLite or TinyFlux files.
 
 Alternative approaches, limitations and
-resource measurements will be discussed in
-the final REPORT.md.
+resource measurements are documented in REPORT.md.
+
+## 13. Guarded Updates on an Existing Host
+
+`deploy/scripts/install-systemd-units.sh` checks the installed
+Falcon, collector and database initialization unit definitions.
+`--check` is read-only. `--apply` backs up modified units, installs
+the new versions and runs `systemctl daemon-reload`, but does not
+restart services or touch LXD, the database or protected credentials.
+Both modes were tested on 2026-10-08, with all units unchanged.
+
+`deploy/scripts/update-application.sh` updates Falcon application
+code and static Astro files on an already-provisioned host. It
+rejects changed Python requirements and database schema/migration
+code: those require a separately reviewed upgrade. It stages and
+checks new files before briefly restarting the API and collector;
+previous application files are retained as rollback copies. It
+never copies secrets, SQLite, TinyFlux, systemd units or LXD config.
+
+From the repository root, after building Astro as the normal user:
+
+```bash
+cd dashboard && npm ci && npm run build && cd ..
+sudo bash deploy/scripts/install-systemd-units.sh --check
+sudo bash deploy/scripts/update-application.sh --check
+# Review any reported differences before using --apply.
+sudo bash deploy/scripts/update-application.sh --apply
+sudo bash deploy/scripts/check-deployment.sh
+sudo bash deploy/scripts/verify-reboot.sh
+```
+
+The existing-host updater and browser login/metrics should be
+rechecked following code changes. The scripts do not provide an
+end-to-end tested clean-host installation or public TLS setup.

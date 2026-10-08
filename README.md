@@ -886,6 +886,31 @@ sudo python3 deploy/scripts/measure-resources.py three-tabs 60
 
 Run deployment scripts from the repository root.
 
+### Continuous integration and verified optional features
+
+GitHub Actions (`.github/workflows/ci.yml`) runs Falcon tests on
+Python 3.12, Ruff critical checks, an Astro build on Node.js 22,
+and repository/shell-script checks. The CSV-export feature commit
+`bb60cd69` passed the full CI workflow on 2026-10-08.
+Mocked LXD-dependent unit tests supplement, but do not replace,
+manual verification with real LXD on Ubuntu.
+
+The Admin can explicitly adopt eligible unmanaged LXD containers and
+assign ownership through **Manage containers → Adopt external**.
+The Falcon endpoint enforces Admin access, quota/hardware limits,
+and safe LXD configuration checks before recording ownership.
+
+**Container Details → Export CSV** downloads authorized historical
+TinyFlux chart data for the selected range. The server enforces the
+same container access rules as JSON history; larger ranges may be
+aggregated. CSV-formula injection is mitigated.
+
+On an already-provisioned Ubuntu host, `deploy/scripts/install-systemd-units.sh`
+checks/reconciles units, while `deploy/scripts/update-application.sh`
+stages compatible code-only releases and retains rollback copies.
+Both support `--check` before `--apply`; neither replaces a
+fresh-host provisioning procedure. See `deploy/README.md`.
+
 ## 16. Measured Resource Footprint
 
 Resource measurements were collected on Ubuntu 24.04.4 LTS with an Intel Core i9-11900H, 16 logical CPU threads, approximately 15.4 GiB RAM and three LXD containers.
@@ -924,6 +949,7 @@ Additional outstanding work and unverified cases are tracked in `TODO.md`.
 
 - [Deployment and recovery evidence](deploy/README.md)
 - [Architecture and design decisions](docs/DECISIONS.md)
+- [Security threat model](docs/THREAT_MODEL.md)
 - [Project specification](docs/PROJECT_SPEC.md)
 - [Final report and resource benchmarks](REPORT.md)
 - [Implementation and verification checklist](TODO.md)

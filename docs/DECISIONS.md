@@ -486,3 +486,33 @@ The following must be verified during implementation:
 - Service startup and recovery.
 
 A design decision is not evidence of successful implementation. These items must be tested before being marked complete.
+
+## 26. Implemented Optional Features (verified 2026-10-08)
+
+The repository includes GitHub Actions CI for backend tests,
+critical lint, Astro build, and static/shell checks; the CSV-export
+commit `bb60cd69` passed. GitHub runners have no privileged LXD
+socket, so LXD-dependent unit tests use mocks; real-LXD acceptance
+checks are separate.
+
+The existing-host systemd installer and guarded application updater
+provide repeatable unit reconciliation and code-only updates with
+rollback copies. They preserve production data/credentials and do
+not claim to automate initial host provisioning or public TLS.
+
+Adoption of existing LXD containers is an explicit Admin operation,
+not automatic discovery-based ownership. The Admin UI uses the
+existing Falcon endpoint, which validates hardware, disk quota,
+owner allocation and supported LXD configuration before committing
+SQLite owner and access records; it does not recreate the instance.
+
+Authorized metrics CSV export reuses the historical query service
+and `require_container_access`. It exposes the selected chart range,
+not unrestricted raw TinyFlux storage, and guards against CSV formula
+injection. Admin and assigned Container Users are authorized; other
+users are denied. Local browser export and CI tests passed.
+
+No stronger LXD privilege isolation is implied by these bonuses:
+the Falcon backend and collector still use a highly privileged local
+LXD socket. Real host security boundaries and untested cases remain
+in docs/THREAT_MODEL.md and REPORT.md.
