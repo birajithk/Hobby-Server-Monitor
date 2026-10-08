@@ -321,7 +321,7 @@ A task is complete only when its implementation has been verified. Checkmarks be
 - [x] Verify a fresh database initialization.
 - [x] Complete service recovery verification, including unexpected collector failure.
 - [x] Verify automatic TinyFlux collector recovery after unexpected SIGKILL; systemd restarted the collector, recent TinyFlux measurements were confirmed, and Falcon remained operational (2026-10-08).
-- [ ] Verify recovery after a host reboot.
+- [x] Verify recovery after a host reboot.
 - [x] Verify that the application works without development servers.
 - [ ] Verify authenticated browser access through production HTTPS.
 - [x] Verify automatic Falcon service recovery after an unexpected SIGKILL; systemd restarted Gunicorn, the restart counter increased, and the Nginx-proxied API health check passed (2026-10-08).

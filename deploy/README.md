@@ -411,6 +411,68 @@ The Falcon service was restarted after rotation.
 
 No secret values are recorded in this document.
 
+### Host reboot recovery verification
+
+Status: PASSED
+
+Verification date: 2026-10-08
+
+The complete Hobby Server Monitor deployment was
+tested for automatic recovery following an Ubuntu
+host reboot.
+
+#### Test procedure
+
+1. Verified Falcon, collector and Nginx were enabled.
+2. Recorded the system boot ID and startup time.
+3. Recorded pre-reboot SQLite and TinyFlux state.
+4. Rebooted the Ubuntu host.
+5. Did not manually start any application services.
+6. Verified the new system boot ID.
+7. Confirmed systemd initialized the application database.
+8. Confirmed Falcon started automatically.
+9. Confirmed the independent collector started automatically.
+10. Confirmed Nginx started automatically.
+11. Verified direct and reverse-proxied API health.
+12. Verified the static Astro dashboard.
+13. Confirmed SQLite records persisted.
+14. Confirmed TinyFlux retained historical data and
+    resumed collecting new measurements.
+
+#### Results
+
+PASS — Falcon started after host reboot.
+
+PASS — Collector started after host reboot.
+
+PASS — Nginx started after host reboot.
+
+PASS — Database initialization completed successfully.
+
+PASS — API health checks succeeded.
+
+PASS — Static Astro dashboard was accessible.
+
+PASS — SQLite data persisted across reboot.
+
+PASS — TinyFlux measurements persisted and new
+measurements were collected.
+
+#### Engineering conclusion
+
+The deployed application recovers automatically
+after an operating-system reboot without requiring
+manual startup commands.
+
+The collector operates independently of the API
+and frontend.
+
+This verifies host-level restart and persistence
+behavior on the tested Ubuntu environment.
+
+Authenticated browser access through HTTPS
+remains a separate production verification task.
+
 ## 10. Operational Commands
 
 Check API status:
