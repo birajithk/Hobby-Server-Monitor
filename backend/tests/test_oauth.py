@@ -360,7 +360,24 @@ class OAuthTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 401)
 
-    def test_admin_can_invite_user(self):
+    @patch(
+        "app.services.quota_service.HostService.get_overview",
+        return_value={
+            "memory": {
+                "total_bytes": 16 * (1024**3),
+            },
+            "cpu": {
+                "logical_threads": 16,
+            },
+            "storage_pools": [
+                {
+                    "total_bytes": 100 * (1024**3),
+                    "disk_quota_verified": True,
+                },
+            ],
+        },
+    )
+    def test_admin_can_invite_user(self, mock_get_overview):
 
         admin_id = get_or_create_user(
             self.admin_claims()
@@ -387,6 +404,8 @@ class OAuthTests(unittest.TestCase):
                 "quota_disk_bytes": 2147483648,
             },
         )
+
+        mock_get_overview.assert_called_once()
 
         self.assertEqual(response.status_code, 201)
 
